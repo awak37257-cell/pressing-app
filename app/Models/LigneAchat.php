@@ -21,8 +21,8 @@ class LigneAchat extends Model
     ];
 
     protected $casts = [
-        'quantite' => 'decimal:2',
-        'prix_unitaire' => 'decimal:0',
+        'quantite' => 'float',
+        'prix_unitaire' => 'float',
     ];
 
     public function achat(): BelongsTo

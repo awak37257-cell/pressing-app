@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToPressing;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Depot extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, BelongsToPressing;
 
     protected $fillable = [
         'pressing_id',
@@ -20,6 +21,7 @@ class Depot extends Model
         'date_depot',
         'date_retrait_prevue',
         'date_retrait_reelle',
+        'consommation_validee_at',
         'statut',
         'express',
         'montant_total',
@@ -33,6 +35,7 @@ class Depot extends Model
         'date_depot' => 'datetime',
         'date_retrait_prevue' => 'date',
         'date_retrait_reelle' => 'datetime',
+        'consommation_validee_at' => 'datetime',
         'express' => 'boolean',
         'montant_total' => 'decimal:0',
         'remise' => 'decimal:0',
@@ -63,6 +66,16 @@ class Depot extends Model
     public function paiements(): HasMany
     {
         return $this->hasMany(Paiement::class);
+    }
+
+    public function historique(): HasMany
+    {
+        return $this->hasMany(DepotHistorique::class)->orderBy('created_at')->orderBy('id');
+    }
+
+    public function consommations(): HasMany
+    {
+        return $this->hasMany(DepotConsommation::class);
     }
 
     public function notifications(): HasMany

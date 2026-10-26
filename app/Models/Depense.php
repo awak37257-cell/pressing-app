@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToPressing;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Depense extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToPressing;
 
     protected $fillable = [
         'pressing_id',
@@ -18,6 +19,7 @@ class Depense extends Model
         'libelle',
         'montant',
         'date_depense',
+        'mode_paiement',
     ];
 
     protected $casts = [

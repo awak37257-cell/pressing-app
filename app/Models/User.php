@@ -37,7 +37,7 @@ class User extends Authenticatable
 
     public function pressing(): BelongsTo
     {
-        return $table = $this->belongsTo(Pressing::class);
+        return $this->belongsTo(Pressing::class);
     }
 
     public function depots(): HasMany

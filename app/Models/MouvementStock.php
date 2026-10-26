@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToPressing;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MouvementStock extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToPressing;
 
     protected $table = 'mouvements_stock';
     public $timestamps = false;
@@ -27,8 +28,8 @@ class MouvementStock extends Model
 
     protected $casts = [
         'date_mouvement' => 'datetime',
-        'quantite' => 'decimal:2',
-        'stock_apres' => 'decimal:2',
+        'quantite' => 'float',
+        'stock_apres' => 'float',
     ];
 
     public function pressing(): BelongsTo
