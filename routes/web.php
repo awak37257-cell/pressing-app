@@ -10,10 +10,15 @@ use App\Http\Controllers\DepotController;
 use App\Http\Controllers\FournisseurController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\MouvementStockController;
+use App\Http\Controllers\PaiementController;
+use App\Http\Controllers\PressingsController;
 use App\Http\Controllers\ProduitController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RapportController;
 use App\Http\Controllers\RecuController;
+use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceProduitController;
+use App\Http\Controllers\TarifController;
 use App\Http\Controllers\TraitementController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,12 +32,16 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 Route::middleware(['auth', 'pressing'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+    // ---- Profil (tous les rôles)
+    Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+
     // ---- Dépôts
     Route::resource('depots', DepotController::class);
 
     // Workflow par boutons avec rôles stricts
     Route::get('traitement', [TraitementController::class, 'index'])->name('traitement.index');
-    
+
     Route::post('depots/{depot}/commencer', [DepotActionController::class, 'commencer'])
         ->middleware('role:admin,gerant,operateur')
         ->name('depots.commencer');
@@ -63,6 +72,12 @@ Route::middleware(['auth', 'pressing'])->group(function () {
     Route::get('paiements/{paiement}/recu', [RecuController::class, 'paiement'])
         ->middleware('role:admin,gerant,caissier')->name('paiements.recu');
 
+    // ---- Modification de paiement (admin + gérant uniquement)
+    Route::get('paiements/{paiement}/edit', [PaiementController::class, 'edit'])
+        ->middleware('role:admin,gerant')->name('paiements.edit');
+    Route::put('paiements/{paiement}', [PaiementController::class, 'update'])
+        ->middleware('role:admin,gerant')->name('paiements.update');
+
     // ---- Clients, produits, stocks
     Route::resource('clients', ClientController::class);
 
@@ -82,4 +97,21 @@ Route::middleware(['auth', 'pressing'])->group(function () {
     Route::get('mouvements', [MouvementStockController::class, 'index'])->name('mouvements.index');
     Route::get('rapports', [RapportController::class, 'index'])
         ->middleware('role:admin,gerant')->name('rapports.index');
+
+    // ---- Services & Tarifs (admin + gérant)
+    Route::resource('services', ServiceController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->middleware('role:admin,gerant');
+
+    Route::post('tarifs', [TarifController::class, 'store'])
+        ->middleware('role:admin,gerant')->name('tarifs.store');
+    Route::put('tarifs/{tarif}', [TarifController::class, 'update'])
+        ->middleware('role:admin,gerant')->name('tarifs.update');
+    Route::delete('tarifs/{tarif}', [TarifController::class, 'destroy'])
+        ->middleware('role:admin,gerant')->name('tarifs.destroy');
+
+    // ---- Pressings (admin uniquement)
+    Route::resource('pressings', PressingsController::class)
+        ->except('show')
+        ->middleware('role:admin');
 });

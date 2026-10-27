@@ -43,6 +43,9 @@ class ProduitController extends Controller implements HasMiddleware
 
     public function create(): View
     {
+        if (!in_array(auth()->user()->role, ['admin', 'gerant'], true)) {
+        abort(403, "Action non autorisée.");
+    }
         $categories = CategorieProduit::orderBy('nom')->get();
 
         return view('produits.create', compact('categories'));
@@ -50,6 +53,9 @@ class ProduitController extends Controller implements HasMiddleware
 
     public function store(Request $request, StockService $stock): RedirectResponse
     {
+        if (!in_array(auth()->user()->role, ['admin', 'gerant'], true)) {
+        abort(403, "Action non autorisée.");
+    }
         $pid  = $this->pressingId();
         $data = $request->validate([
             'nom'                  => ['required', 'string', 'max:100', Rule::unique('produits', 'nom')->where('pressing_id', $pid)],
