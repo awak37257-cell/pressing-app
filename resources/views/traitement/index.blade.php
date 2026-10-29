@@ -67,14 +67,34 @@
                         @if($depot->express)<span class="badge-danger ml-1">⚡ Express</span>@endif
                     </td>
                     <td>{{ $depot->client?->nom }} {{ $depot->client?->prenom }}</td>
-                    <td class="text-sm">
+                    
+                    {{-- Colonne Articles avec détails et observations visibles pour l'opérateur --}}
+                    <td class="text-sm py-3">
                         @foreach($depot->articles->where('statut', '!=', 'perdu')->take(3) as $a)
-                            <span class="block text-slate-700">{{ $a->quantite }} × {{ $a->typeArticle?->nom }} <span class="text-slate-400">— {{ $a->service?->nom }}</span></span>
+                            <div class="mb-1.5 last:mb-0">
+                                <span class="font-bold text-slate-800">{{ $a->quantite }} × {{ $a->typeArticle?->nom }}</span> 
+                                <span class="text-slate-500">— {{ $a->service?->nom }}</span>
+                                
+                                @if($a->observation)
+                                    <div class="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
+                                        <svg class="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                        <span>{{ $a->observation }}</span>
+                                    </div>
+                                @endif
+                            </div>
                         @endforeach
+
                         @if($depot->articles->count() > 3)
-                            <span class="text-xs text-slate-400">+ {{ $depot->articles->count() - 3 }} autre(s)</span>
+                            <span class="text-xs text-slate-400 font-medium block mt-1">+ {{ $depot->articles->count() - 3 }} autre(s) article(s)</span>
+                        @endif
+
+                        @if($depot->observations)
+                            <div class="mt-2 text-[11px] text-slate-600 bg-slate-100/80 px-2.5 py-1 rounded-lg border border-slate-200/60">
+                                <span class="font-bold text-slate-700">Note globale :</span> {{ $depot->observations }}
+                            </div>
                         @endif
                     </td>
+
                     <td class="{{ $enRetardLigne ? 'text-red-600 font-semibold' : 'text-slate-500' }}">
                         {{ $depot->date_retrait_prevue?->format('d/m/Y') }}
                         @if($enRetardLigne)<span class="block text-[11px]">En retard</span>@endif
@@ -87,16 +107,27 @@
                         @endif
                     </td>
                     <td class="text-right">
-                        @if($depot->statut === 'depose')
-                            <form method="POST" action="{{ route('depots.commencer', $depot) }}" class="inline">@csrf
-                                <button class="btn-primary text-xs px-3 py-1.5">▶ Commencer</button>
-                            </form>
+                        @php 
+                            $roleUser = strtolower(trim(auth()->user()->role ?? ''));
+                            $estPersonnelAtelier = in_array($roleUser, ['admin', 'gerant', 'operateur', 'atelier'], true);
+                        @endphp
+
+                        @if($estPersonnelAtelier)
+                            @if($depot->statut === 'depose')
+                                <form method="POST" action="{{ route('depots.commencer', $depot) }}" class="inline">
+                                    @csrf
+                                    <button class="btn-primary text-xs px-3 py-1.5">▶ Commencer</button>
+                                </form>
+                            @else
+                                <form method="POST" action="{{ route('depots.pret', $depot) }}" class="inline">
+                                    @csrf
+                                    <button class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition">
+                                        ✔ Prêt{{ ($produitsRequis[$depot->id] ?? false) ? ' + produits' : '' }}
+                                    </button>
+                                </form>
+                            @endif
                         @else
-                            <form method="POST" action="{{ route('depots.pret', $depot) }}" class="inline">@csrf
-                                <button class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition">
-                                    ✔ Prêt{{ ($produitsRequis[$depot->id] ?? false) ? ' + produits' : '' }}
-                                </button>
-                            </form>
+                            <span class="text-xs text-slate-400 italic">Consultation</span>
                         @endif
                     </td>
                 </tr>

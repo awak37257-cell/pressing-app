@@ -12,10 +12,12 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\MouvementStockController;
 use App\Http\Controllers\PaiementController;
 use App\Http\Controllers\PressingsController;
+use App\Http\Controllers\EmployeController;
 use App\Http\Controllers\ProduitController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RapportController;
 use App\Http\Controllers\RecuController;
+use App\Http\Controllers\Auth\ForcedPasswordController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceProduitController;
 use App\Http\Controllers\TarifController;
@@ -54,6 +56,9 @@ Route::middleware(['auth', 'pressing'])->group(function () {
         ->middleware('role:admin,gerant,caissier')
         ->name('depots.retirer');
 
+        Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::resource('employes', EmployeController::class)->except(['show']);
+});
     Route::post('depots/{depot}/rouvrir', [DepotActionController::class, 'rouvrir'])
         ->middleware('role:admin,gerant')
         ->name('depots.rouvrir');
@@ -114,4 +119,6 @@ Route::middleware(['auth', 'pressing'])->group(function () {
     Route::resource('pressings', PressingsController::class)
         ->except('show')
         ->middleware('role:admin');
+    Route::get('/changer-mot-de-passe-force', [ForcedPasswordController::class, 'edit'])->name('password.force.change');
+    Route::put('/changer-mot-de-passe-force', [ForcedPasswordController::class, 'update'])->name('password.force.update');
 });

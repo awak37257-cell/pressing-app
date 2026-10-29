@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CheckPasswordChange;
 use App\Http\Middleware\EnsureUserHasPressing;
 use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Foundation\Application;
@@ -14,9 +15,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Enregistrement des alias
         $middleware->alias([
             'role'     => RoleMiddleware::class,
             'pressing' => EnsureUserHasPressing::class,
+            'password' => CheckPasswordChange::class,
+        ]);
+
+        // AJOUT ICI : Exécuter ce middleware automatiquement sur toutes les pages web authentifiées
+        $middleware->web(append: [
+            CheckPasswordChange::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

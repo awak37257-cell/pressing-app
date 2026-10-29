@@ -19,6 +19,12 @@ class DepotActionController extends Controller
 
     public function commencer(Request $request, Depot $depot): RedirectResponse
     {
+        $role = strtolower(trim(auth()->user()->role ?? ''));
+
+    // Interdire l'action aux secrétaires / caissières
+    if (in_array($role, ['secretaire', 'caissiere'], true)) {
+        abort(403, "Seul le personnel d'atelier ou la gérance peut démarrer le traitement.");
+    }
         $this->depots->changerStatut($depot, 'en_traitement', $request->user());
 
         return back()->with('success', "Traitement commencé : {$depot->numero_ticket}.");
@@ -26,6 +32,12 @@ class DepotActionController extends Controller
 
     public function pret(Request $request, Depot $depot): RedirectResponse
     {
+        $role = strtolower(trim(auth()->user()->role ?? ''));
+
+    // Interdire l'action aux secrétaires / caissières
+    if (in_array($role, ['secretaire', 'caissiere'], true)) {
+        abort(403, "Seul le personnel d'atelier ou la gérance peut marquer un dépôt comme prêt.");
+    }
         // Si des produits doivent être déclarés, on passe d'abord par la page « produits utilisés »
         if ($depot->statut === 'en_traitement' && $this->consommations->requise($depot)) {
             return redirect()->route('consommations.create', $depot);

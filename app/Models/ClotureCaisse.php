@@ -2,43 +2,31 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToPressing;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ClotureCaisse extends Model
 {
-    use HasFactory, BelongsToPressing;
-
     protected $table = 'clotures_caisse';
 
     protected $fillable = [
         'pressing_id',
         'user_id',
-        'date',
-        'fond_ouverture',
-        'total_encaisse',
-        'total_depenses',
-        'solde_theorique',
-        'solde_reel',
+        'date_cloture',
+        'total_especes',
+        'total_wave',
+        'total_orange',
+        'total_mtn',
+        'total_carte',
+        'total_general',
+        'montant_physique_declare',
         'ecart',
+        'commentaire',
     ];
 
     protected $casts = [
-        'date' => 'date',
-        'fond_ouverture' => 'decimal:0',
-        'total_encaisse' => 'decimal:0',
-        'total_depenses' => 'decimal:0',
-        'solde_theorique' => 'decimal:0',
-        'solde_reel' => 'decimal:0',
-        'ecart' => 'decimal:0',
+        'date_cloture' => 'date',
     ];
-
-    public function pressing(): BelongsTo
-    {
-        return $this->belongsTo(Pressing::class);
-    }
 
     public function user(): BelongsTo
     {

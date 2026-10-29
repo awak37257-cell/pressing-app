@@ -15,7 +15,7 @@ class TraitementController extends Controller
         $filtre = $request->query('statut');
 
         $query = Depot::with(['client', 'articles.typeArticle', 'articles.service'])
-            ->whereIn('statut', ['depose', 'en_traitement'])
+            ->whereIn('statut', ['depose', 'en_traitement', 'pret'])
             ->orderByDesc('express')
             ->orderBy('date_retrait_prevue')
             ->orderBy('id');

@@ -10,18 +10,24 @@ return new class extends Migration
     {
         Schema::create('clotures_caisse', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('pressing_id')->constrained('pressings')->onDelete('cascade');
-            $table->foreignId('user_id')->constrained('users')->onDelete('restrict');
-            $table->date('date');
-            $table->decimal('fond_ouverture', 12, 0)->default(0);
-            $table->decimal('total_encaisse', 12, 0)->default(0);
-            $table->decimal('total_depenses', 12, 0)->default(0);
-            $table->decimal('solde_theorique', 12, 0)->default(0);
-            $table->decimal('solde_reel', 12, 0)->default(0);
-            $table->decimal('ecart', 12, 0)->default(0);
+            $table->foreignId('pressing_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete(); // Qui a fait la clôture
+            $table->date('date_cloture');
+            
+            // Montants théoriques calculés par le système
+            $table->decimal('total_especes', 12, 2)->default(0);
+            $table->decimal('total_wave', 12, 2)->default(0);
+            $table->decimal('total_orange', 12, 2)->default(0);
+            $table->decimal('total_mtn', 12, 2)->default(0);
+            $table->decimal('total_carte', 12, 2)->default(0);
+            $table->decimal('total_general', 12, 2)->default(0);
+            
+            // Vérification physique de la caisse (Espèces)
+            $table->decimal('montant_physique_declare', 12, 2); // Ce que la caissière a compté
+            $table->decimal('ecart', 12, 2)->default(0); // Positif = excédent, Négatif = manquant
+            
+            $table->text('commentaire')->nullable();
             $table->timestamps();
-
-            $table->unique(['user_id', 'date'], 'uq_cloture');
         });
     }
 
