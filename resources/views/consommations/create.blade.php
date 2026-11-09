@@ -4,13 +4,6 @@
 @section('page-title', 'Produits utilisés')
 @section('page-subtitle', 'Déclaration des consommations pour le dépôt ' . $depot->numero_ticket)
 
-@php
-    $initial = old('lignes') ?: $propositions->values()->map(fn ($l) => [
-        'produit_id' => $l['produit']->id,
-        'quantite'   => $l['quantite'],
-    ])->all();
-@endphp
-
 @section('content')
 
 <style>
@@ -105,7 +98,9 @@
                     </div>
                     <div>
                         <h3 class="font-bold text-slate-800 text-sm">Produits consommés</h3>
-                        <p class="text-[11px] text-slate-500">Les quantités sont pré-remplies d'après les réglages standard — ajustez si nécessaire.</p>
+                        <p class="text-[11px] text-slate-500">
+                            Déclarez les produits et les quantités réellement utilisés pendant cette opération.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -120,7 +115,7 @@
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
                     </svg>
-                    Ajouter un autre produit
+                    Ajouter un produit consommé
                 </button>
             </div>
         </div>
@@ -227,7 +222,7 @@
 <script>
 (() => {
     const produits = @json($produits);
-    const initial  = @json($initial);
+    const initial  = @json(old('lignes', []));
     const conteneur = document.getElementById('lignes');
     let index = 0;
 

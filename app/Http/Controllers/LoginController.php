@@ -17,15 +17,25 @@ class LoginController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required|string',
         ]);
 
-        if (! Auth::attempt($credentials + ['actif' => true], $request->boolean('remember'))) {
+        if (! Auth::attempt($credentials + ['actif' => true])) {
             return back()->withErrors(['email' => 'Identifiants incorrects ou compte désactivé.'])->onlyInput('email');
         }
 
         $request->session()->regenerate();
+
+        $user = $request->user();
+
+        if ($user->doit_changer_mot_de_passe) {
+            return redirect()->route('password.force.change');
+        }
+
+        if ($user->role === 'operateur') {
+            return redirect()->route('traitement.index');
+        }
 
         return redirect()->intended(route('dashboard'));
     }

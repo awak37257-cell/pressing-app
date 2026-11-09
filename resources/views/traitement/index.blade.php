@@ -60,7 +60,7 @@
             </thead>
             <tbody>
             @forelse($depots as $depot)
-                @php $enRetardLigne = $depot->date_retrait_prevue?->isPast(); @endphp
+                @php $enRetardLigne = $depot->estEnRetard(); @endphp
                 <tr>
                     <td>
                         <a href="{{ route('depots.show', $depot) }}" class="font-semibold text-amber-600 hover:text-amber-700">{{ $depot->numero_ticket }}</a>
@@ -109,10 +109,10 @@
                     <td class="text-right">
                         @php 
                             $roleUser = strtolower(trim(auth()->user()->role ?? ''));
-                            $estPersonnelAtelier = in_array($roleUser, ['admin', 'gerant', 'operateur', 'atelier'], true);
+                            $peutTraiterDepot = in_array($roleUser, ['admin', 'gerant', 'operateur'], true);
                         @endphp
 
-                        @if($estPersonnelAtelier)
+                        @if($peutTraiterDepot)
                             @if($depot->statut === 'depose')
                                 <form method="POST" action="{{ route('depots.commencer', $depot) }}" class="inline">
                                     @csrf
@@ -122,7 +122,7 @@
                                 <form method="POST" action="{{ route('depots.pret', $depot) }}" class="inline">
                                     @csrf
                                     <button class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition">
-                                        ✔ Prêt{{ ($produitsRequis[$depot->id] ?? false) ? ' + produits' : '' }}
+                                        ✔ Prêt + déclaration
                                     </button>
                                 </form>
                             @endif

@@ -6,9 +6,6 @@
 
 @php
     $initial = old('articles') ?: [['type_article_id' => '', 'service_id' => '', 'quantite' => 1]];
-    $erreursLignes = collect($errors->getMessages())
-        ->filter(fn ($messages, $cle) => str_starts_with($cle, 'articles.'))
-        ->map(fn ($messages) => $messages[0]);
     $catalogueVide = $typesArticles->isEmpty() || $services->isEmpty();
 @endphp
 
@@ -113,7 +110,7 @@
                                     class="appearance-none w-full pl-3.5 pr-9 py-2.5 rounded-xl border {{ $errors->has('client_id') ? 'border-rose-400' : 'border-slate-200' }} bg-slate-50/50 text-sm text-slate-700 focus:bg-white focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all cursor-pointer">
                                 <option value="">— Sélectionner un client —</option>
                                 @foreach($clients as $client)
-                                    <option value="{{ $client->id }}" @selected(old('client_id') == $client->id)>
+                                    <option value="{{ $client->id }}" data-points="{{ $client->points_fidelite }}" data-reste-fidelite="{{ $client->reste_fidelite_fcfa }}" @selected(old('client_id') == $client->id)>
                                         {{ $client->nom }} {{ $client->prenom }}{{ $client->telephone ? ' — ' . $client->telephone : '' }}
                                     </option>
                                 @endforeach
@@ -123,10 +120,10 @@
                             </svg>
                         </div>
                         @error('client_id')<p class="text-rose-500 text-xs mt-1">{{ $message }}</p>@enderror
-                        <a href="{{ route('clients.create') }}" class="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-amber-600 hover:text-amber-700 hover:underline">
+                        <button type="button" id="ouvrir-modal-client" class="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-amber-600 hover:text-amber-700 hover:underline">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                             Créer un nouveau client
-                        </a>
+                        </button>
                     </div>
                     <div>
                         <label for="date_retrait_prevue" class="text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5 block">Date de retrait prévue <span class="text-rose-500">*</span></label>
@@ -174,7 +171,17 @@
                 </button>
             </div>
             <div class="p-6">
-                <div id="articles-container" class="space-y-3"></div>
+                <div id="articles-container" class="space-y-3">
+                    @foreach($initial as $index => $data)
+                        @include('depots.partials.article-row', [
+                            'index' => $index,
+                            'data' => $data,
+                            'errorTypeArticle' => $errors->first("articles.$index.type_article_id"),
+                            'errorService' => $errors->first("articles.$index.service_id"),
+                            'errorQuantite' => $errors->first("articles.$index.quantite"),
+                        ])
+                    @endforeach
+                </div>
                 <p class="mt-4 text-xs text-slate-400 italic flex items-center gap-1.5">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     Les prix proviennent de la grille tarifaire et sont calculés en temps réel.
@@ -240,8 +247,18 @@
                         <input type="number" id="remise" name="remise" min="0" step="1" inputmode="numeric"
                                value="{{ old('remise', 0) }}"
                                class="w-full px-3 py-2 rounded-lg border {{ $errors->has('remise') ? 'border-rose-400' : 'border-amber-200' }} bg-white text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all">
-                        <p id="warn-remise" class="hidden text-xs text-rose-600 font-bold mt-1">La remise dépasse le total des articles.</p>
+                        @error('remise')<p class="text-rose-500 text-xs font-bold mt-1">{{ $message }}</p>@enderror
                     </div>
+                    <div class="rounded-xl border border-amber-200 bg-white/80 p-3">
+                        <label for="points_fidelite_utilises" class="text-[11px] font-bold text-amber-800 uppercase tracking-wider mb-1 block">Points fidélité à utiliser</label>
+                        <input type="number" id="points_fidelite_utilises" name="points_fidelite_utilises" min="0" step="100" inputmode="numeric"
+                               value="{{ old('points_fidelite_utilises', 0) }}"
+                               class="w-full px-3 py-2 rounded-lg border {{ $errors->has('points_fidelite_utilises') ? 'border-rose-400' : 'border-amber-200' }} bg-white text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all">
+                        <p id="points-disponibles" class="mt-1 text-xs text-slate-500" aria-live="polite">Sélectionnez un client pour voir son solde. 1 point est gagné par tranche de 1 000 FCFA encaissés.</p>
+                        <p id="warn-points" class="hidden text-xs text-rose-600 font-bold mt-1">Vérifiez le solde de points et le montant de la remise fidélité.</p>
+                        @error('points_fidelite_utilises')<p class="text-rose-500 text-xs font-bold mt-1">{{ $message }}</p>@enderror
+                    </div>
+                    <p id="warn-remise" class="hidden text-xs text-rose-600 font-bold">Le total des remises dépasse le total des articles.</p>
                     <div>
                         <label for="montant_paye" class="text-[11px] font-bold text-amber-800 uppercase tracking-wider mb-1 block">Acompte reçu (FCFA)</label>
                         <input type="number" id="montant_paye" name="montant_paye" min="0" step="1" inputmode="numeric"
@@ -295,68 +312,146 @@
     </aside>
 </form>
 
+<div id="modal-client" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="titre-modal-client">
+    <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+        <div class="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-4">
+            <div>
+                <h2 id="titre-modal-client" class="font-bold text-slate-800">Nouveau client</h2>
+                <p class="mt-1 text-xs text-slate-500">Le client sera ajouté au dépôt en cours.</p>
+            </div>
+            <button type="button" id="fermer-modal-client" class="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100" aria-label="Fermer">✕</button>
+        </div>
+        <form id="form-nouveau-client" method="POST" action="{{ route('clients.store') }}" class="space-y-4 p-6">
+            @csrf
+            <div id="erreur-client" class="hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700" role="alert"></div>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="nouveau-client-nom" class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-600">Nom *</label>
+                    <input id="nouveau-client-nom" name="nom" required maxlength="100" autocomplete="family-name"
+                           class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/30">
+                </div>
+                <div>
+                    <label for="nouveau-client-prenom" class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-600">Prénom</label>
+                    <input id="nouveau-client-prenom" name="prenom" maxlength="100" autocomplete="given-name"
+                           class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/30">
+                </div>
+                <div>
+                    <label for="nouveau-client-telephone" class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-600">Téléphone *</label>
+                    <input id="nouveau-client-telephone" name="telephone" required maxlength="30" autocomplete="tel"
+                           class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/30">
+                </div>
+                <div>
+                    <label for="nouveau-client-email" class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-600">Email</label>
+                    <input id="nouveau-client-email" name="email" type="email" maxlength="150" autocomplete="email"
+                           class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/30">
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="nouveau-client-adresse" class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-600">Adresse</label>
+                    <input id="nouveau-client-adresse" name="adresse" maxlength="500" autocomplete="street-address"
+                           class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/30">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" id="annuler-modal-client" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Annuler</button>
+                <button type="submit" id="enregistrer-client" class="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-sm font-bold text-white shadow-md hover:from-amber-600 hover:to-orange-600 disabled:cursor-not-allowed disabled:opacity-60">Créer et continuer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {{-- ══════ GABARIT LIGNE ══════ --}}
 <template id="tpl-ligne">
-    <div class="line-item group relative rounded-xl border border-slate-200/80 bg-gradient-to-br from-slate-50/70 to-white p-4 transition-all duration-200 hover:border-amber-300 hover:shadow-md">
-        <div class="flex items-center gap-3 mb-3">
-            <div class="line-number w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-extrabold text-slate-500 transition-all duration-200">1</div>
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Article</span>
-        </div>
-        <div class="grid md:grid-cols-12 gap-3">
-            <div class="md:col-span-5">
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Type d'article <span class="text-rose-500">*</span></label>
-                <div class="relative">
-                    <select name="articles[__I__][type_article_id]" class="appearance-none w-full pl-3 pr-8 py-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all cursor-pointer" required>
-                        <option value="">— Sélectionner —</option>
-                        @foreach($typesArticles as $type)
-                            <option value="{{ $type->id }}">{{ $type->nom }}</option>
-                        @endforeach
-                    </select>
-                    <svg class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                </div>
-            </div>
-            <div class="md:col-span-4">
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Service <span class="text-rose-500">*</span></label>
-                <div class="relative">
-                    <select name="articles[__I__][service_id]" class="appearance-none w-full pl-3 pr-8 py-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all cursor-pointer" required>
-                        <option value="">— Sélectionner —</option>
-                        @foreach($services as $service)
-                            <option value="{{ $service->id }}">{{ $service->nom }}</option>
-                        @endforeach
-                    </select>
-                    <svg class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                </div>
-            </div>
-            <div class="md:col-span-3">
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Quantité <span class="text-rose-500">*</span></label>
-                <input type="number" name="articles[__I__][quantite]" min="1" max="999" value="1" inputmode="numeric"
-                       class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all" required>
-            </div>
-        </div>
-        <div class="mt-3 pt-3 flex items-center justify-between gap-3 text-xs border-t border-slate-200/60">
-            <p class="text-slate-500 font-medium">Prix : <span class="prix font-extrabold text-slate-800">—</span> <span class="text-[10px] text-slate-400">FCFA</span></p>
-            <div class="flex items-center gap-3">
-                <p class="text-slate-500 font-medium">Sous-total : <span class="st font-extrabold text-slate-900 text-sm">0</span> <span class="text-[10px] text-slate-400">FCFA</span></p>
-                <button type="button" class="sup inline-flex items-center justify-center w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white font-bold transition-all duration-200" aria-label="Supprimer">✕</button>
-            </div>
-        </div>
-        <p class="ligne-hint hidden mt-2 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200/60 p-2 rounded-lg">⚠ Aucun tarif défini pour cette combinaison article / service.</p>
-        <p class="ligne-erreur hidden mt-2 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200/60 p-2 rounded-lg"></p>
-    </div>
+    @include('depots.partials.article-row', [
+        'index' => '__I__',
+        'data' => [],
+        'errorTypeArticle' => null,
+        'errorService' => null,
+        'errorQuantite' => null,
+    ])
 </template>
 
 <script>
 (() => {
     const tarifs   = @json($tarifs);
-    const initial  = @json($initial);
-    const erreurs  = @json($erreursLignes);
-
     const form      = document.getElementById('form-depot');
     const container = document.getElementById('articles-container');
     const gabarit   = document.getElementById('tpl-ligne').innerHTML;
     const fmt       = n => Math.round(n).toLocaleString('fr-FR');
     const $         = id => document.getElementById(id);
     let prochain    = 0;
+
+    const modalClient = $('modal-client');
+    const formClient = $('form-nouveau-client');
+    const erreurClient = $('erreur-client');
+    const boutonEnregistrerClient = $('enregistrer-client');
+
+    function fermerModalClient() {
+        modalClient.classList.add('hidden');
+        modalClient.classList.remove('flex');
+        $('ouvrir-modal-client').focus();
+    }
+
+    $('ouvrir-modal-client').addEventListener('click', () => {
+        modalClient.classList.remove('hidden');
+        modalClient.classList.add('flex');
+        $('nouveau-client-nom').focus();
+    });
+    $('fermer-modal-client').addEventListener('click', fermerModalClient);
+    $('annuler-modal-client').addEventListener('click', fermerModalClient);
+    modalClient.addEventListener('click', event => {
+        if (event.target === modalClient) {
+            fermerModalClient();
+        }
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !modalClient.classList.contains('hidden')) {
+            fermerModalClient();
+        }
+    });
+
+    formClient.addEventListener('submit', async event => {
+        event.preventDefault();
+        erreurClient.classList.add('hidden');
+        boutonEnregistrerClient.disabled = true;
+        boutonEnregistrerClient.textContent = 'Création en cours…';
+
+        try {
+            const response = await fetch(formClient.action, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: new FormData(formClient),
+            });
+            const resultat = await response.json();
+
+            if (!response.ok) {
+                const messages = Object.values(resultat.errors ?? {}).flat();
+                erreurClient.textContent = messages.join(' ') || 'Impossible de créer le client. Veuillez réessayer.';
+                erreurClient.classList.remove('hidden');
+                return;
+            }
+
+            const client = resultat.client;
+            const option = document.createElement('option');
+            option.value = client.id;
+            option.dataset.points = client.points_fidelite ?? 0;
+            option.dataset.resteFidelite = client.reste_fidelite_fcfa ?? 0;
+            option.textContent = `${client.nom} ${client.prenom ?? ''}${client.telephone ? ' — ' + client.telephone : ''}`.trim();
+            $('client_id').append(option);
+            $('client_id').value = client.id;
+            $('client_id').dispatchEvent(new Event('change', { bubbles: true }));
+            formClient.reset();
+            fermerModalClient();
+        } catch (error) {
+            erreurClient.textContent = 'Une erreur est survenue pendant la création du client. Vérifiez votre connexion et réessayez.';
+            erreurClient.classList.remove('hidden');
+        } finally {
+            boutonEnregistrerClient.disabled = false;
+            boutonEnregistrerClient.textContent = 'Créer et continuer';
+        }
+    });
 
     function majNumero() {
         container.querySelectorAll('.line-item').forEach((l, i) => {
@@ -378,22 +473,17 @@
         ligne.querySelector('[name$="[service_id]"]').value      = data.service_id ?? '';
         ligne.querySelector('[name$="[quantite]"]').value        = data.quantite ?? 1;
 
-        const message = ['type_article_id', 'service_id', 'quantite']
-            .map(champ => erreurs[`articles.${index}.${champ}`])
-            .find(Boolean);
-        if (message) {
-            const p = ligne.querySelector('.ligne-erreur');
-            p.textContent = message;
-            p.classList.remove('hidden');
-        }
+        configurerLigne(ligne);
 
+        container.appendChild(ligne);
+    }
+
+    function configurerLigne(ligne) {
         ligne.querySelector('.sup').addEventListener('click', () => {
             ligne.style.opacity = '0';
             ligne.style.transform = 'translateX(-20px)';
             setTimeout(() => { ligne.remove(); majNumero(); majBoutonsSupprimer(); calculer(); }, 200);
         });
-
-        container.appendChild(ligne);
     }
 
     function calculer() {
@@ -416,23 +506,36 @@
         });
 
         const remise  = Math.max(0, parseInt($('remise').value, 10) || 0);
+        const pointsInput = $('points_fidelite_utilises');
+        const points = Math.max(0, parseInt(pointsInput.value, 10) || 0);
+        const optionClient = $('client_id').selectedOptions[0];
+        const pointsDisponibles = Math.max(0, parseInt(optionClient?.dataset.points, 10) || 0);
+        const pointsMax = pointsDisponibles - (pointsDisponibles % 100);
+        const remiseFidelite = points * 10;
+        const remiseTotale = remise + remiseFidelite;
         const acompte = Math.max(0, parseInt($('montant_paye').value, 10) || 0);
-        const net     = Math.max(0, total - remise);
+        const net     = Math.max(0, total - remiseTotale);
         const reste   = net - acompte;
 
+        pointsInput.max = pointsMax;
+        $('points-disponibles').textContent = optionClient?.value
+            ? pointsDisponibles + ' point(s) disponible(s) · 100 points = 1 000 FCFA de remise. 1 point par tranche de 1 000 FCFA encaissés.'
+            : 'Sélectionnez un client pour voir son solde. 1 point est gagné par tranche de 1 000 FCFA encaissés.';
         $('sum-total').textContent  = fmt(total);
-        $('sum-remise').textContent = remise > 0 ? '− ' + fmt(remise) : '0';
+        $('sum-remise').textContent = remiseTotale > 0 ? '− ' + fmt(remiseTotale) : '0';
         $('sum-net').textContent    = fmt(net);
         $('sum-reste').textContent  = fmt(Math.max(0, reste));
 
-        $('warn-remise').classList.toggle('hidden', remise <= total);
+        $('warn-points').classList.toggle('hidden',
+            points === 0 || (points % 100 === 0 && points <= pointsMax && remiseTotale <= total));
+        $('warn-remise').classList.toggle('hidden', remiseTotale <= total);
         $('warn-acompte').classList.toggle('hidden', acompte <= net);
         $('ref-wrap').classList.toggle('hidden', $('mode_paiement').value === 'especes');
     }
 
-    Object.entries(initial).forEach(([cle, donnees]) => {
-        ajouterLigne(cle, donnees);
-        prochain = Math.max(prochain, parseInt(cle, 10) + 1);
+    container.querySelectorAll('.line-item').forEach(ligne => {
+        configurerLigne(ligne);
+        prochain = Math.max(prochain, Number(ligne.dataset.index) + 1);
     });
 
     $('btn-ajouter-article').addEventListener('click', () => {

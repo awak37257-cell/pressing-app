@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Depot extends Model
 {
-    use HasFactory, SoftDeletes, BelongsToPressing;
+    use BelongsToPressing, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'pressing_id',
@@ -26,6 +26,7 @@ class Depot extends Model
         'express',
         'montant_total',
         'remise',
+        'points_fidelite_utilises',
         'montant_paye',
         'reste_a_payer',
         'observations',
@@ -39,6 +40,7 @@ class Depot extends Model
         'express' => 'boolean',
         'montant_total' => 'decimal:0',
         'remise' => 'decimal:0',
+        'points_fidelite_utilises' => 'integer',
         'montant_paye' => 'decimal:0',
         'reste_a_payer' => 'decimal:0',
     ];
@@ -81,5 +83,12 @@ class Depot extends Model
     public function notifications(): HasMany
     {
         return $this->hasMany(Notification::class);
+    }
+
+    public function estEnRetard(): bool
+    {
+        return in_array($this->statut, ['depose', 'en_traitement'], true)
+            && $this->date_retrait_prevue !== null
+            && $this->date_retrait_prevue->lt(today());
     }
 }

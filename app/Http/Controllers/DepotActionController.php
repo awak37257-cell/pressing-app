@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\ArticleDepot;
 use App\Models\Depot;
-use App\Services\ConsommationService;
 use App\Services\DepotService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,34 +11,31 @@ use Illuminate\Http\Request;
 /** Boutons du workflow : commencer, marquer prêt, remettre au client, rouvrir, signaler un article. */
 class DepotActionController extends Controller
 {
-    public function __construct(
-        private DepotService $depots,
-        private ConsommationService $consommations
-    ) {}
+    public function __construct(private DepotService $depots) {}
 
     public function commencer(Request $request, Depot $depot): RedirectResponse
     {
         $role = strtolower(trim(auth()->user()->role ?? ''));
 
-    // Interdire l'action aux secrétaires / caissières
-    if (in_array($role, ['secretaire', 'caissiere'], true)) {
-        abort(403, "Seul le personnel d'atelier ou la gérance peut démarrer le traitement.");
-    }
+        // Interdire l'action aux secrétaires / caissières
+        if (in_array($role, ['secretaire', 'caissiere'], true)) {
+            abort(403, 'Seul un opérateur ou la gérance peut démarrer le traitement.');
+        }
         $this->depots->changerStatut($depot, 'en_traitement', $request->user());
 
-        return back()->with('success', "Traitement commencé : {$depot->numero_ticket}.");
+        return redirect()->route('traitement.index', ['statut' => 'en_traitement'])
+            ->with('success', "Traitement commencé : {$depot->numero_ticket}.");
     }
 
     public function pret(Request $request, Depot $depot): RedirectResponse
     {
         $role = strtolower(trim(auth()->user()->role ?? ''));
 
-    // Interdire l'action aux secrétaires / caissières
-    if (in_array($role, ['secretaire', 'caissiere'], true)) {
-        abort(403, "Seul le personnel d'atelier ou la gérance peut marquer un dépôt comme prêt.");
-    }
-        // Si des produits doivent être déclarés, on passe d'abord par la page « produits utilisés »
-        if ($depot->statut === 'en_traitement' && $this->consommations->requise($depot)) {
+        // Interdire l'action aux secrétaires / caissières
+        if (in_array($role, ['secretaire', 'caissiere'], true)) {
+            abort(403, 'Seul un opérateur ou la gérance peut marquer un dépôt comme prêt.');
+        }
+        if ($depot->statut === 'en_traitement' && $depot->consommation_validee_at === null) {
             return redirect()->route('consommations.create', $depot);
         }
 
@@ -68,7 +64,7 @@ class DepotActionController extends Controller
     {
         $data = $request->validate([
             'statut' => 'required|in:perdu,abime',
-            'note'   => 'required|string|min:3|max:200',
+            'note' => 'required|string|min:3|max:200',
         ]);
 
         $this->depots->signaler($depot, $article, $data['statut'], $data['note'], $request->user());

@@ -34,32 +34,46 @@ class AchatController extends Controller implements HasMiddleware
             $query->whereDate('date_achat', '<=', $request->date_fin);
         }
 
-        $achats       = $query->paginate(15)->withQueryString();
+        $achats = $query->paginate(15)->withQueryString();
         $fournisseurs = Fournisseur::orderBy('nom')->get();
-        $totalMois    = Achat::where('date_achat', '>=', now()->startOfMonth())->sum('montant_total');
+        $totalMois = Achat::where('date_achat', '>=', now()->startOfMonth())->sum('montant_total');
 
         return view('achats.index', compact('achats', 'fournisseurs', 'totalMois'));
     }
 
     public function create(): View
     {
+        $fournisseurs = Fournisseur::with('categories')->orderBy('nom')->get();
+
         return view('achats.create', [
-            'fournisseurs' => Fournisseur::orderBy('nom')->get(),
-            'produits'     => Produit::orderBy('nom')->get(),
+            'fournisseurs' => $fournisseurs,
+            'produits' => Produit::orderBy('nom')->get(),
         ]);
     }
 
     public function store(Request $request, AchatService $achats): RedirectResponse
     {
         $pid = $this->pressingId();
+        $fournisseurId = $request->input('fournisseur_id');
+        $fournisseur = is_numeric($fournisseurId)
+            ? Fournisseur::where('pressing_id', $pid)->find($fournisseurId)
+            : null;
+        $categoriesFournisseur = $fournisseur?->categories()->pluck('categories_produits.id')->all() ?? [];
 
         $data = $request->validate([
-            'fournisseur_id' => ['required', Rule::exists('fournisseurs', 'id')->where('pressing_id', $pid)],
-            'date_achat'     => 'required|date|before_or_equal:today',
-            'mode_paiement'  => 'required|in:especes,orange_money,mtn_money,wave,autre',
-            'lignes'         => 'required|array|min:1',
-            'lignes.*.produit_id'    => ['required', Rule::exists('produits', 'id')->where('pressing_id', $pid)->withoutTrashed()],
-            'lignes.*.quantite'      => 'required|numeric|gt:0',
+            'fournisseur_id' => ['required', 'integer', Rule::exists('fournisseurs', 'id')->where('pressing_id', $pid)],
+            'date_achat' => 'required|date|before_or_equal:today',
+            'mode_paiement' => 'required|in:especes,orange_money,mtn_money,wave,autre',
+            'lignes' => 'required|array|min:1',
+            'lignes.*.produit_id' => [
+                'required',
+                'integer',
+                Rule::exists('produits', 'id')
+                    ->where('pressing_id', $pid)
+                    ->whereIn('categorie_produit_id', $categoriesFournisseur)
+                    ->withoutTrashed(),
+            ],
+            'lignes.*.quantite' => 'required|numeric|gt:0',
             'lignes.*.prix_unitaire' => 'required|numeric|min:0',
             'lignes.*.conditionnement' => 'nullable|boolean',
         ]);
@@ -70,7 +84,7 @@ class AchatController extends Controller implements HasMiddleware
                 $produit = Produit::findOrFail($ligne['produit_id']);
 
                 if ((float) $produit->contenance > 0) {
-                    $data['lignes'][$i]['quantite']      = (float) $ligne['quantite'] * (float) $produit->contenance;
+                    $data['lignes'][$i]['quantite'] = (float) $ligne['quantite'] * (float) $produit->contenance;
                     $data['lignes'][$i]['prix_unitaire'] = (float) $ligne['prix_unitaire'] / (float) $produit->contenance;
                 }
             }

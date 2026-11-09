@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Client extends Model
 {
-    use HasFactory, SoftDeletes, BelongsToPressing;
+    use BelongsToPressing, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'pressing_id',
@@ -21,7 +21,17 @@ class Client extends Model
         'adresse',
         'email',
         'observations',
+        'points_fidelite',
+        'reste_fidelite_fcfa',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'points_fidelite' => 'integer',
+            'reste_fidelite_fcfa' => 'integer',
+        ];
+    }
 
     public function pressing(): BelongsTo
     {

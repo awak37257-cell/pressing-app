@@ -85,7 +85,7 @@
     </div>
 
     {{-- ══════ STATS CARDS ══════ --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
 
         {{-- Total dépôts --}}
         <div class="stat-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 text-white shadow-xl shadow-slate-900/20">
@@ -126,6 +126,25 @@
                     <span class="w-1.5 h-1.5 rounded-full bg-teal-300"></span>
                     Encaissements cumulés
                 </p>
+            </div>
+        </div>
+
+        {{-- Points fidélité --}}
+        <div class="stat-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-rose-600 p-6 text-white shadow-xl shadow-orange-600/20">
+            <div class="absolute top-0 right-0 w-40 h-40 bg-yellow-300/25 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div class="relative">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="w-11 h-11 rounded-xl bg-white/15 backdrop-blur-sm border border-white/25 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <span class="text-[10px] font-bold bg-white/20 px-2 py-1 rounded-md tracking-wider uppercase">Fidélité</span>
+                </div>
+                <p class="text-[11px] font-semibold text-white/80 uppercase tracking-[0.1em] mb-1">Solde de points</p>
+                <p class="text-3xl font-extrabold tracking-tight">{{ number_format($client->points_fidelite, 0, ',', ' ') }}</p>
+                <p class="text-xs text-white/90 mt-2">1 point / 1 000 FCFA payé · 100 points = 1 000 FCFA de remise</p>
+                <p class="text-[11px] text-white/75 mt-1">{{ $client->reste_fidelite_fcfa }} FCFA cumulés vers le prochain point</p>
             </div>
         </div>
 

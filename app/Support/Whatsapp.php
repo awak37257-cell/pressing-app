@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\ArticleDepot;
+
 class Whatsapp
 {
     /**
@@ -21,9 +23,40 @@ class Whatsapp
         }
 
         if (! str_starts_with($chiffres, '225')) {
-            $chiffres = '225' . $chiffres;
+            $chiffres = '225'.$chiffres;
         }
 
-        return 'https://wa.me/' . $chiffres . '?text=' . rawurlencode($message);
+        return 'https://wa.me/'.$chiffres.'?text='.rawurlencode($message);
+    }
+
+    /**
+     * @param  iterable<ArticleDepot>  $articles
+     */
+    public static function articleIncidentNotice(iterable $articles): string
+    {
+        $incidents = collect($articles)
+            ->filter(fn (ArticleDepot $article): bool => in_array($article->statut, ['perdu', 'abime'], true))
+            ->map(function (ArticleDepot $article): string {
+                $designation = ($article->quantite > 1 ? $article->quantite.' × ' : '')
+                    .($article->typeArticle?->nom ?? 'Article');
+                $detail = $designation.' — '.($article->statut === 'perdu' ? 'perdu' : 'abîmé');
+                $observation = trim((string) $article->observation);
+
+                if ($observation !== '') {
+                    $detail .= ' : '.$observation;
+                }
+
+                return $detail;
+            });
+
+        if ($incidents->isEmpty()) {
+            return '';
+        }
+
+        $introduction = $incidents->count() === 1
+            ? 'Information importante : article signalé'
+            : 'Informations importantes : articles signalés';
+
+        return "\n\n".$introduction.' : '.$incidents->implode('; ').'.';
     }
 }

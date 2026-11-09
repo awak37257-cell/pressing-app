@@ -139,6 +139,7 @@
             <thead>
                 <tr class="bg-slate-50/70 border-b border-slate-200/60">
                     <th class="py-3.5 px-6 text-[10.5px] font-bold text-slate-500 uppercase tracking-[0.08em]">Fournisseur</th>
+                    <th class="py-3.5 px-6 text-[10.5px] font-bold text-slate-500 uppercase tracking-[0.08em]">Catégories fournies</th>
                     <th class="py-3.5 px-6 text-[10.5px] font-bold text-slate-500 uppercase tracking-[0.08em]">Contact</th>
                     <th class="py-3.5 px-6 text-[10.5px] font-bold text-slate-500 uppercase tracking-[0.08em]">Adresse</th>
                     <th class="py-3.5 px-6 text-[10.5px] font-bold text-slate-500 uppercase tracking-[0.08em] text-center">Activité</th>
@@ -155,6 +156,15 @@
                             </div>
                             <span class="font-bold text-slate-900 truncate">{{ $f->nom }}</span>
                         </div>
+                    </td>
+                    <td class="py-3.5 px-6">
+                        @forelse($f->categories as $categorie)
+                            <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-700 border border-amber-200/70 mr-1 mb-1">
+                                {{ $categorie->nom }}
+                            </span>
+                        @empty
+                            <span class="text-xs text-slate-400 italic">Aucune catégorie</span>
+                        @endforelse
                     </td>
                     <td class="py-3.5 px-6">
                         @if($f->telephone)
@@ -218,7 +228,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="py-20 text-center">
+                    <td colspan="6" class="py-20 text-center">
                         <div class="flex flex-col items-center">
                             <div class="relative mb-5">
                                 <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-400 rotate-6">

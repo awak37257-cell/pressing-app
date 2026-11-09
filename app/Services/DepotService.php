@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ArticleDepot;
+use App\Models\Client;
 use App\Models\Depot;
 use App\Models\DepotHistorique;
 use App\Models\Paiement;
@@ -14,11 +15,11 @@ use Illuminate\Validation\ValidationException;
 class DepotService
 {
     private const TRANSITIONS = [
-        'depose'        => ['en_traitement', 'annule'],
+        'depose' => ['en_traitement', 'annule'],
         'en_traitement' => ['pret', 'annule'],
-        'pret'          => ['en_traitement', 'retire', 'annule'],
-        'retire'        => [],
-        'annule'        => [],
+        'pret' => ['en_traitement', 'retire', 'annule'],
+        'retire' => [],
+        'annule' => [],
     ];
 
     public const ROLES_CAISSE = ['admin', 'gerant', 'caissier'];
@@ -26,8 +27,26 @@ class DepotService
     public function creer(array $data, User $user): Depot
     {
         return DB::transaction(function () use ($data, $user) {
-            $express   = (bool) ($data['express'] ?? false);
-            $lignes    = [];
+            $express = (bool) ($data['express'] ?? false);
+            $client = Client::query()
+                ->where('pressing_id', $user->pressing_id)
+                ->lockForUpdate()
+                ->findOrFail($data['client_id']);
+            $pointsUtilises = (int) ($data['points_fidelite_utilises'] ?? 0);
+
+            if ($pointsUtilises < 0 || $pointsUtilises % 100 !== 0) {
+                throw ValidationException::withMessages([
+                    'points_fidelite_utilises' => 'Les points utilisés doivent être un multiple de 100.',
+                ]);
+            }
+
+            if ($pointsUtilises > $client->points_fidelite) {
+                throw ValidationException::withMessages([
+                    'points_fidelite_utilises' => 'Le client ne possède pas assez de points de fidélité.',
+                ]);
+            }
+
+            $lignes = [];
             $sousTotal = 0;
 
             foreach (array_values($data['articles']) as $i => $a) {
@@ -42,41 +61,53 @@ class DepotService
                     ]);
                 }
 
-                $prix       = (int) $tarif->prix + ($express ? (int) $tarif->prix_express : 0);
+                $prix = (int) $tarif->prix + ($express ? (int) $tarif->prix_express : 0);
                 $sousTotal += $prix * (int) $a['quantite'];
-                $lignes[]   = [
+                $lignes[] = [
                     'type_article_id' => $a['type_article_id'],
-                    'service_id'      => $a['service_id'],
-                    'quantite'        => (int) $a['quantite'],
-                    'prix_unitaire'   => $prix,
+                    'service_id' => $a['service_id'],
+                    'quantite' => (int) $a['quantite'],
+                    'prix_unitaire' => $prix,
                 ];
             }
 
-            $remise = (int) ($data['remise'] ?? 0);
+            $remiseManuelle = (int) ($data['remise'] ?? 0);
+            $remiseFidelite = $pointsUtilises * 10;
+            $remise = $remiseManuelle + $remiseFidelite;
+
             if ($remise > $sousTotal) {
-                throw ValidationException::withMessages(['remise' => 'La remise dépasse le montant des articles.']);
+                $cleRejet = $remiseFidelite > 0 ? 'points_fidelite_utilises' : 'remise';
+
+                throw ValidationException::withMessages([
+                    $cleRejet => 'Le total des remises dépasse le montant des articles.',
+                ]);
             }
 
-            $net  = $sousTotal - $remise;
+            $net = $sousTotal - $remise;
             $paye = (int) ($data['montant_paye'] ?? 0);
             if ($paye > $net) {
                 throw ValidationException::withMessages(['montant_paye' => 'Le montant payé dépasse le total à payer.']);
             }
 
+            if ($pointsUtilises > 0) {
+                $client->decrement('points_fidelite', $pointsUtilises);
+            }
+
             $depot = Depot::create([
-                'pressing_id'         => $user->pressing_id,
-                'numero_ticket'       => $this->prochainNumero($user->pressing_id),
-                'client_id'           => $data['client_id'],
-                'user_id'             => $user->id,
-                'date_depot'          => now(),
+                'pressing_id' => $user->pressing_id,
+                'numero_ticket' => $this->prochainNumero($user->pressing_id),
+                'client_id' => $data['client_id'],
+                'user_id' => $user->id,
+                'date_depot' => now(),
                 'date_retrait_prevue' => $data['date_retrait_prevue'],
-                'statut'              => 'depose',
-                'express'             => $express,
-                'montant_total'       => $net,
-                'remise'              => $remise,
-                'montant_paye'        => 0,
-                'reste_a_payer'       => $net,
-                'observations'        => $data['observations'] ?? null,
+                'statut' => 'depose',
+                'express' => $express,
+                'montant_total' => $net,
+                'remise' => $remise,
+                'points_fidelite_utilises' => $pointsUtilises,
+                'montant_paye' => 0,
+                'reste_a_payer' => $net,
+                'observations' => $data['observations'] ?? null,
             ]);
 
             foreach ($lignes as $ligne) {
@@ -108,23 +139,34 @@ class DepotService
 
             if ($montant < 1 || $montant > (int) $depot->reste_a_payer) {
                 throw ValidationException::withMessages([
-                    'montant_paye_ajout' => 'Le montant doit être entre 1 et ' . number_format((int) $depot->reste_a_payer, 0, ',', ' ') . ' FCFA.',
+                    'montant_paye_ajout' => 'Le montant doit être entre 1 et '.number_format((int) $depot->reste_a_payer, 0, ',', ' ').' FCFA.',
                 ]);
             }
 
             $paiement = Paiement::create([
-                'depot_id'      => $depot->id,
-                'user_id'       => $user->id,
-                'montant'       => $montant,
-                'mode'          => $mode,
-                'reference'     => $reference,
+                'depot_id' => $depot->id,
+                'user_id' => $user->id,
+                'montant' => $montant,
+                'mode' => $mode,
+                'reference' => $reference,
                 'date_paiement' => now(),
             ]);
 
             $paye = (int) $depot->paiements()->sum('montant');
             $depot->update([
-                'montant_paye'  => $paye,
+                'montant_paye' => $paye,
                 'reste_a_payer' => (int) $depot->montant_total - $paye,
+            ]);
+
+            $client = Client::query()
+                ->where('pressing_id', $user->pressing_id)
+                ->lockForUpdate()
+                ->findOrFail($depot->client_id);
+            $montantCumule = $client->reste_fidelite_fcfa + $montant;
+            $pointsGagnes = intdiv($montantCumule, 1000);
+            $client->update([
+                'points_fidelite' => $client->points_fidelite + $pointsGagnes,
+                'reste_fidelite_fcfa' => $montantCumule % 1000,
             ]);
 
             return $paiement;
@@ -164,18 +206,26 @@ class DepotService
                 }
                 if ((int) $depot->reste_a_payer > 0 && ! ($gestionnaire && $derogation)) {
                     throw ValidationException::withMessages([
-                        'statut' => 'Remise impossible : il reste ' . number_format((int) $depot->reste_a_payer, 0, ',', ' ') . ' FCFA à payer.',
+                        'statut' => 'Remise impossible : il reste '.number_format((int) $depot->reste_a_payer, 0, ',', ' ').' FCFA à payer.',
                     ]);
                 }
             }
 
             $depot->update(['statut' => $statut] + ($statut === 'retire' ? ['date_retrait_reelle' => now()] : []));
 
+            if ($statut === 'annule' && $depot->points_fidelite_utilises > 0) {
+                $client = Client::query()
+                    ->where('pressing_id', $user->pressing_id)
+                    ->lockForUpdate()
+                    ->findOrFail($depot->client_id);
+                $client->increment('points_fidelite', $depot->points_fidelite_utilises);
+            }
+
             match ($statut) {
                 'en_traitement' => $depot->articles()->whereIn('statut', ['depose', 'pret'])->update(['statut' => 'en_traitement']),
-                'pret'          => $depot->articles()->whereIn('statut', ['depose', 'en_traitement'])->update(['statut' => 'pret']),
-                'retire'        => $depot->articles()->where('statut', 'pret')->update(['statut' => 'retire']),
-                default         => null,
+                'pret' => $depot->articles()->whereIn('statut', ['depose', 'en_traitement'])->update(['statut' => 'pret']),
+                'retire' => $depot->articles()->where('statut', 'pret')->update(['statut' => 'retire']),
+                default => null,
             };
 
             $this->historiser($depot, $statut, $user, $note ?? ($statut === 'retire' && (int) $depot->reste_a_payer > 0 ? 'Remis avec dérogation (solde restant)' : null));
@@ -204,7 +254,7 @@ class DepotService
                 $depot,
                 $depot->statut,
                 $user,
-                'Article « ' . ($article->typeArticle?->nom ?? '?') . ' » signalé ' . ($statut === 'perdu' ? 'perdu' : 'abîmé') . ' : ' . $note
+                'Article « '.($article->typeArticle?->nom ?? '?').' » signalé '.($statut === 'perdu' ? 'perdu' : 'abîmé').' : '.$note
             );
         });
     }
@@ -212,25 +262,25 @@ class DepotService
     public function historiser(Depot $depot, string $statut, ?User $user, ?string $note = null): void
     {
         DepotHistorique::create([
-            'depot_id'   => $depot->id,
-            'user_id'    => $user?->id,
-            'statut'     => $statut,
-            'note'       => $note,
+            'depot_id' => $depot->id,
+            'user_id' => $user?->id,
+            'statut' => $statut,
+            'note' => $note,
             'created_at' => now(),
         ]);
     }
 
     private function prochainNumero(int $pressingId): string
     {
-        $prefix  = 'TK-' . now()->format('Ymd') . '-';
+        $prefix = 'TK-'.now()->format('Ymd').'-';
         $dernier = Depot::withTrashed()
             ->where('pressing_id', $pressingId)
-            ->where('numero_ticket', 'like', $prefix . '%')
+            ->where('numero_ticket', 'like', $prefix.'%')
             ->lockForUpdate()
             ->max('numero_ticket');
 
         $n = $dernier ? ((int) substr($dernier, -4)) + 1 : 1;
 
-        return $prefix . str_pad((string) $n, 4, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) $n, 4, '0', STR_PAD_LEFT);
     }
 }

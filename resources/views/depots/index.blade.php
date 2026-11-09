@@ -43,27 +43,30 @@
             <p class="text-xs text-slate-500 font-medium">Tous les articles déposés et leur suivi</p>
         </div>
     </div>
-    <a href="{{ route('depots.create') }}" id="btn-nouveau-depot"
-       class="group inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 via-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-amber-500/30 hover:shadow-xl text-sm transition-all duration-300 hover:-translate-y-0.5 active:scale-95">
-        <svg class="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-        </svg>
-        Nouveau dépôt
-    </a>
-</div>
+    <div class="flex flex-col sm:flex-row gap-2">
+        <form method="GET" action="{{ route('depots.index') }}" class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
+            <label for="scan-ticket" class="sr-only">Scanner ou saisir un numéro de ticket</label>
+            <input id="scan-ticket" type="text" name="scan_ticket" value="{{ old('scan_ticket') }}"
+                   placeholder="Scanner ou saisir un ticket" autocomplete="off" autofocus required maxlength="50"
+                   class="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:ring-0 sm:w-56">
+            <button type="submit" aria-label="Rechercher le ticket"
+                    class="inline-flex shrink-0 items-center gap-2 rounded-lg bg-slate-900 px-3.5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                </svg>
+                Scanner
+            </button>
+        </form>
 
-{{-- ══════ ALERTE / BANDEAU DÉPÔTS PRÊTS POUR LA CAISSE ══════ --}}
-@php
-    $roleUtilisateur = strtolower(trim(auth()->user()->role ?? ''));
-    $estPersonnelCaisse = in_array($roleUtilisateur, ['secretaire', 'caissiere', 'admin', 'gerant'], true);
-    
-    // Récupérer les dépôts qui viennent d'être marqués comme 'pret' pour le pressing courant
-    $depotsPretsALivrer = \App\Models\Depot::where('pressing_id', auth()->user()->pressing_id)
-        ->where('statut', 'pret')
-        ->latest()
-        ->take(6)
-        ->get();
-@endphp
+        <a href="{{ route('depots.create') }}" id="btn-nouveau-depot"
+           class="group inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-500 to-orange-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-amber-500/30 transition-all duration-300 hover:-translate-y-0.5 hover:from-amber-600 hover:via-amber-600 hover:to-orange-600 hover:shadow-xl active:scale-95">
+            <svg class="h-4 w-4 transition-transform duration-300 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+            Nouveau dépôt
+        </a>
+    </div>
+</div>
 
 @if($estPersonnelCaisse && $depotsPretsALivrer->isNotEmpty())
     <div class="mb-6 p-4 rounded-2xl bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-100/50 border border-emerald-200/80 text-emerald-900 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -72,16 +75,32 @@
                 🔔
             </span>
             <div>
-                <h4 class="font-bold text-sm text-emerald-950">Linge prêt à être remis au client (Atelier)</h4>
-                <p class="text-xs text-emerald-700 mt-0.5">Ces dépôts ont été traités par l'atelier et attendent l'encaissement ou le retrait.</p>
+                <h4 class="font-bold text-sm text-emerald-950">Linge prêt à être remis au client (Opérateurs)</h4>
+                <p class="text-xs text-emerald-700 mt-0.5">Ces dépôts ont été traités par les opérateurs et attendent l'encaissement ou le retrait.</p>
             </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
             @foreach($depotsPretsALivrer as $dPret)
-                <a href="{{ route('depots.show', $dPret) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-600 hover:text-white border border-emerald-300 text-xs font-bold text-emerald-900 shadow-2xs transition group">
-                    <span>Ticket {{ $dPret->numero_ticket }}</span>
-                    <span class="text-[10px] text-slate-400 group-hover:text-emerald-200">({{ $dPret->client?->nom }})</span>
-                </a>
+                <div class="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-300 bg-white px-3 py-2 shadow-2xs">
+                    <a href="{{ route('depots.prets', ['scan_ticket' => $dPret->numero_ticket]) }}" class="text-xs font-bold text-emerald-900 hover:underline">
+                        Ticket {{ $dPret->numero_ticket }} <span class="font-medium text-slate-500">({{ $dPret->client?->nom }})</span>
+                    </a>
+                    @php
+                        $messagePret = "Bonjour {$dPret->client?->nom}, votre linge (ticket {$dPret->numero_ticket}) est prêt à être retiré chez " . ($dPret->pressing?->nom ?? 'notre pressing') . '. '
+                            . ((int) $dPret->reste_a_payer > 0
+                                ? 'Il vous reste à payer : ' . number_format((int) $dPret->reste_a_payer, 0, ',', ' ') . ' FCFA. '
+                                : 'Votre solde est réglé. ')
+                            . 'Merci de passer le récupérer.'
+                            . \App\Support\Whatsapp::articleIncidentNotice($dPret->articles);
+                        $whatsappPret = \App\Support\Whatsapp::url($dPret->client?->telephone, $messagePret);
+                    @endphp
+                    @if($whatsappPret)
+                        <a href="{{ $whatsappPret }}" target="_blank" rel="noopener"
+                           class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-emerald-700">
+                            Prévenir par WhatsApp
+                        </a>
+                    @endif
+                </div>
             @endforeach
         </div>
     </div>
@@ -255,7 +274,7 @@
                     </td>
                     <td class="py-3.5 px-4">
                         <div class="text-xs text-slate-600 font-semibold">{{ $depot->date_depot->format('d/m/Y') }}</div>
-                        <div class="text-[10px] {{ $depot->date_retrait_prevue?->isPast() && in_array($depot->statut, ['depose','en_traitement']) ? 'text-rose-500 font-bold' : 'text-slate-400' }} mt-0.5">
+                        <div class="text-[10px] {{ $depot->estEnRetard() ? 'text-rose-500 font-bold' : 'text-slate-400' }} mt-0.5">
                             → {{ $depot->date_retrait_prevue?->format('d/m/Y') ?? '—' }}
                         </div>
                     </td>
@@ -316,7 +335,8 @@
                                 @php
                                     $msgWhatsapp = "Bonjour {$depot->client->nom}, votre linge (ticket {$depot->numero_ticket}) est prêt."
                                         . ((int) $depot->reste_a_payer > 0 ? " Reste à payer : " . number_format($depot->reste_a_payer, 0, ',', ' ') . " FCFA." : "")
-                                        . " Merci de passer le récupérer.";
+                                        . " Merci de passer le récupérer."
+                                        . \App\Support\Whatsapp::articleIncidentNotice($depot->articles);
                                     $urlWhatsapp = \App\Support\Whatsapp::url($depot->client->telephone, $msgWhatsapp);
                                 @endphp
                                 <a href="{{ $urlWhatsapp }}" target="_blank" rel="noopener" title="WhatsApp"

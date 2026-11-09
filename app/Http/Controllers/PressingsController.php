@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CategorieDepense;
 use App\Models\Pressing;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class PressingsController extends Controller implements HasMiddleware
@@ -33,12 +35,15 @@ class PressingsController extends Controller implements HasMiddleware
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'nom'       => 'required|string|max:100',
-            'adresse'   => 'nullable|string|max:500',
+            'nom' => 'required|string|max:100',
+            'adresse' => 'nullable|string|max:500',
             'telephone' => 'nullable|string|max:30',
         ]);
 
-        Pressing::create($data);
+        DB::transaction(function () use ($data): void {
+            $pressing = Pressing::create($data);
+            CategorieDepense::initialiserPourPressing($pressing);
+        });
 
         return redirect()->route('pressings.index')->with('success', 'Pressing créé avec succès.');
     }
@@ -51,8 +56,8 @@ class PressingsController extends Controller implements HasMiddleware
     public function update(Request $request, Pressing $pressing): RedirectResponse
     {
         $data = $request->validate([
-            'nom'       => 'required|string|max:100',
-            'adresse'   => 'nullable|string|max:500',
+            'nom' => 'required|string|max:100',
+            'adresse' => 'nullable|string|max:500',
             'telephone' => 'nullable|string|max:30',
         ]);
 

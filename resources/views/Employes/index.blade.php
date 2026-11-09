@@ -54,7 +54,7 @@
 @php
     $totalEmployes  = $employes->count();
     $nbAdmin        = $employes->where('role', 'admin')->count();
-    $nbOperations   = $employes->whereIn('role', ['gerant', 'caissier', 'atelier'])->count();
+    $nbOperations   = $employes->whereIn('role', ['gerant', 'caissier', 'operateur'])->count();
 @endphp
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -116,7 +116,7 @@
             <p class="text-3xl font-extrabold tracking-tight">{{ $nbOperations }}</p>
             <p class="text-xs text-white/80 mt-2 flex items-center gap-1.5">
                 <span class="w-1.5 h-1.5 rounded-full bg-teal-300"></span>
-                Gérants · Caissiers · Atelier
+                Gérants · Caissiers · Opérateurs
             </p>
         </div>
     </div>
@@ -154,7 +154,7 @@
                             'admin'    => ['label' => 'Admin',    'bg' => 'from-purple-500 to-violet-600', 'badge' => 'bg-purple-100 text-purple-700 border-purple-200/70', 'dot' => 'bg-purple-500'],
                             'gerant'   => ['label' => 'Gérant',   'bg' => 'from-blue-500 to-indigo-600',   'badge' => 'bg-blue-100 text-blue-700 border-blue-200/70',       'dot' => 'bg-blue-500'],
                             'caissier' => ['label' => 'Caissier', 'bg' => 'from-emerald-500 to-teal-600',  'badge' => 'bg-emerald-100 text-emerald-700 border-emerald-200/70', 'dot' => 'bg-emerald-500'],
-                            'atelier'  => ['label' => 'Atelier',  'bg' => 'from-amber-500 to-orange-600',  'badge' => 'bg-amber-100 text-amber-700 border-amber-200/70',     'dot' => 'bg-amber-500'],
+                            'operateur' => ['label' => 'Opérateur', 'bg' => 'from-amber-500 to-orange-600', 'badge' => 'bg-amber-100 text-amber-700 border-amber-200/70', 'dot' => 'bg-amber-500'],
                             default    => ['label' => ucfirst($emp->role), 'bg' => 'from-slate-500 to-slate-600', 'badge' => 'bg-slate-100 text-slate-600 border-slate-200/70', 'dot' => 'bg-slate-400'],
                         };
                         $isMe = $emp->id === auth()->id();

@@ -105,7 +105,7 @@
                             class="appearance-none w-full pl-3.5 pr-9 py-2.5 rounded-xl border {{ $errors->has('role') ? 'border-rose-400' : 'border-slate-200' }} bg-slate-50/50 text-sm text-slate-700 focus:bg-white focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all cursor-pointer">
                         <option value="gerant" @selected(old('role') === 'gerant')>Gérant</option>
                         <option value="caissier" @selected(old('role') === 'caissier')>Caissière</option>
-                        <option value="atelier" @selected(old('role') === 'atelier')>Operateur</option>
+                        <option value="operateur" @selected(old('role') === 'operateur')>Opérateur</option>
                     </select>
                     <svg class="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>

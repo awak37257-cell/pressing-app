@@ -161,21 +161,40 @@
 </form>
 
 <script>
-const produits = [
-    @foreach($produits as $p)
-    {
-        id: {{ $p->id }},
-        nom: "{{ addslashes($p->nom) }}",
-        unite: "{{ addslashes($p->unite) }}",
-        contenance: {{ $p->contenance ?? 'null' }},
-        libelle: "{{ addslashes($p->libelle_conditionnement ?? '') }}"
-    },
-    @endforeach
-];
+const produits = {{ Illuminate\Support\Js::from($produits->map(fn ($produit) => [
+    'id' => $produit->id,
+    'nom' => $produit->nom,
+    'categorie_id' => $produit->categorie_produit_id,
+    'unite' => $produit->unite,
+    'contenance' => $produit->contenance,
+    'libelle' => $produit->libelle_conditionnement ?? '',
+])->values()) }};
+const categoriesFournisseurs = {{ Illuminate\Support\Js::from($fournisseurs->mapWithKeys(fn ($fournisseur) => [
+    $fournisseur->id => $fournisseur->categories->modelKeys(),
+])->all()) }};
+const anciennesLignes = {{ Illuminate\Support\Js::from(old('lignes', [])) }};
 let index = 0;
+
+function mettreAJourProduits(select, valeurSelectionnee = select.value) {
+    const fournisseurId = document.getElementById('fournisseur_id').value;
+    const categories = categoriesFournisseurs[fournisseurId] || [];
+    const produitsDisponibles = produits.filter(produit =>
+        categories.some(categorieId => String(categorieId) === String(produit.categorie_id))
+    );
+    const selectionValide = produitsDisponibles.some(produit => String(produit.id) === String(valeurSelectionnee));
+
+    select.replaceChildren(new Option(
+        fournisseurId ? (produitsDisponibles.length ? '— Sélectionner —' : 'Aucun produit dans les catégories fournies') : '— Choisir un fournisseur d’abord —',
+        ''
+    ));
+
+    produitsDisponibles.forEach(produit => select.add(new Option(`${produit.nom} (${produit.unite})`, produit.id)));
+    select.value = selectionValide ? valeurSelectionnee : '';
+}
 
 function ajouterLigne() {
     const num = index + 1;
+    const ancienneLigne = anciennesLignes[index] || {};
     const div = document.createElement('div');
     div.className = 'line-item group relative rounded-xl border border-slate-200/80 bg-gradient-to-br from-slate-50/70 to-white p-4 transition-all duration-200 hover:border-amber-300 hover:shadow-md';
 
@@ -232,7 +251,10 @@ function ajouterLigne() {
         </div>`;
 
     const select = div.querySelector('.produit');
-    produits.forEach(p => select.add(new Option(`${p.nom} (${p.unite})`, p.id)));
+    mettreAJourProduits(select, ancienneLigne.produit_id || '');
+    div.querySelector('.qte').value = ancienneLigne.quantite ?? '';
+    div.querySelector('.pu').value = ancienneLigne.prix_unitaire ?? '';
+    div.querySelector('.cond').checked = Boolean(ancienneLigne.conditionnement);
 
     const majConditionnement = () => {
         const p = produits.find(x => String(x.id) === select.value);
@@ -263,6 +285,7 @@ function ajouterLigne() {
         setTimeout(() => { div.remove(); calculer(); reindexer(); }, 200);
     });
     document.getElementById('lignes').appendChild(div);
+    select.dispatchEvent(new Event('change'));
     index++;
 }
 
@@ -283,6 +306,12 @@ function calculer() {
 }
 
 document.getElementById('ajouter').addEventListener('click', ajouterLigne);
+document.getElementById('fournisseur_id').addEventListener('change', () => {
+    document.querySelectorAll('.line-item .produit').forEach(select => {
+        mettreAJourProduits(select, select.value);
+        select.dispatchEvent(new Event('change'));
+    });
+});
 ajouterLigne();
 </script>
 @endsection

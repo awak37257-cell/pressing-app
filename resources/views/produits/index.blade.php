@@ -82,6 +82,10 @@
     {{-- Actions rapides --}}
     <div class="flex items-center gap-2">
         @if(in_array(strtolower(trim(auth()->user()->role ?? '')), ['admin', 'gerant'], true))
+            <a href="{{ route('services.index') }}#categories-produits"
+               class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700">
+                Catégories
+            </a>
             <a href="{{ route('produits.create') }}" id="btn-nouveau-produit"
                class="group inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 via-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-amber-500/30 hover:shadow-xl hover:shadow-amber-500/40 text-sm transition-all duration-300 hover:-translate-y-0.5 active:scale-95">
                 <svg class="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">

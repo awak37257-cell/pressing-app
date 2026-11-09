@@ -65,57 +65,57 @@
 @section('content')
 
 <style>
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(10px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes pulseRing {
-        0%   { transform: scale(1); opacity: 0.6; }
-        70%  { transform: scale(1.8); opacity: 0; }
-        100% { transform: scale(1.8); opacity: 0; }
-    }
-    @keyframes float {
-        0%,100% { transform: translateY(0); }
-        50% { transform: translateY(-8px); }
-    }
-    @keyframes growBar {
-        from { height: 0; opacity: 0; }
-        to   { opacity: 1; }
-    }
-    .stat-card { animation: fadeInUp 0.5s ease-out backwards; }
-    .stat-card:nth-child(1) { animation-delay: 0.05s; }
-    .stat-card:nth-child(2) { animation-delay: 0.10s; }
-    .stat-card:nth-child(3) { animation-delay: 0.15s; }
-    .stat-card:nth-child(4) { animation-delay: 0.20s; }
-    .float-orb { animation: float 8s ease-in-out infinite; }
-    .float-orb-2 { animation: float 10s ease-in-out infinite; animation-delay: 2s; }
-    .ring-pulse::before {
-        content: ''; position: absolute; inset: 0; border-radius: 9999px;
-        background: currentColor; animation: pulseRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-    .bar-grow { animation: growBar 0.8s cubic-bezier(.2,.7,.2,1) backwards; }
-    .table-row { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-    .table-row:hover { background: linear-gradient(90deg, #fffbeb 0%, #ffffff 40%, #ffffff 100%); }
-    .table-row:hover .row-avatar { transform: scale(1.1) rotate(-3deg); }
-    .gradient-border { position: relative; background: white; }
+    @keyframes rise      { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @keyframes pulseRing { 0% { transform: scale(1); opacity: .6; } 70%,100% { transform: scale(1.8); opacity: 0; } }
+    @keyframes float     { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    @keyframes growY     { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+    @keyframes growX     { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+    /* Apparition en cascade (hero, KPI, puis cartes) */
+    .stat-card { opacity: 0; animation: rise .6s cubic-bezier(.2,.7,.2,1) forwards; }
+    .stat-card:nth-child(1) { animation-delay: .05s; }
+    .stat-card:nth-child(2) { animation-delay: .12s; }
+    .stat-card:nth-child(3) { animation-delay: .19s; }
+    .stat-card:nth-child(4) { animation-delay: .26s; }
+
+    .gradient-border { position: relative; background: white; opacity: 0;
+        animation: rise .6s cubic-bezier(.2,.7,.2,1) forwards; transition: box-shadow .3s, transform .3s; }
+    .gradient-border:hover { transform: translateY(-2px); box-shadow: 0 16px 32px -12px rgb(15 23 42 / .18); }
+    .space-y-6 > .gradient-border:nth-child(1) { animation-delay: .35s; }
+    .space-y-6 > .gradient-border:nth-child(2) { animation-delay: .45s; }
+    .space-y-6 > .gradient-border:nth-child(3) { animation-delay: .55s; }
     .gradient-border::before {
         content: ''; position: absolute; inset: 0; padding: 1px; border-radius: inherit;
-        background: linear-gradient(135deg, rgba(251,191,36,0.3), rgba(245,158,11,0.1), rgba(251,191,36,0.3));
+        background: linear-gradient(135deg, rgba(251,191,36,.3), rgba(245,158,11,.1), rgba(251,191,36,.3));
         -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
         -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
     }
+
+    .float-orb   { animation: float 9s ease-in-out infinite; }
+    .float-orb-2 { animation: float 11s ease-in-out infinite; animation-delay: 2s; }
+    .ring-pulse::before { content: ''; position: absolute; inset: 0; border-radius: 9999px;
+        background: currentColor; animation: pulseRing 2s ease-out infinite; }
+
+    /* Barres : se déploient au chargement */
+    .bar-grow { transform-origin: bottom; animation: growY .8s cubic-bezier(.2,.7,.2,1) backwards; }
+    .bar-x    { transform-origin: left;   animation: growX .9s cubic-bezier(.2,.7,.2,1) .5s backwards; }
+
+    .table-row { transition: background-color .2s; }
+    .table-row:hover { background: linear-gradient(90deg, #fffbeb 0%, #fff 40%); }
+    .table-row:hover .row-avatar { transform: scale(1.08); }
+
     @media (prefers-reduced-motion: reduce) {
-        .stat-card, .float-orb, .float-orb-2, .bar-grow, .ring-pulse::before { animation: none !important; }
+        .stat-card, .gradient-border, .float-orb, .float-orb-2, .bar-grow, .bar-x, .ring-pulse::before
+        { animation: none !important; opacity: 1; }
     }
 </style>
 
 {{-- ═══════════════════════════════════════════════════════════════
-     HERO BANNER — Cinématographique
+     HERO BANNER
      ═══════════════════════════════════════════════════════════════ --}}
 <section class="relative overflow-hidden rounded-2xl p-6 sm:p-8 lg:p-10 mb-8 text-white shadow-2xl shadow-slate-900/30 stat-card"
          style="background: linear-gradient(135deg, #0a0f1e 0%, #1e293b 45%, #7c2d12 120%);">
 
-    {{-- Orbes flottants --}}
     <div aria-hidden="true" class="float-orb absolute -top-20 -left-16 w-72 h-72 rounded-full bg-amber-500/25 blur-3xl"></div>
     <div aria-hidden="true" class="float-orb-2 absolute -bottom-24 right-0 w-80 h-80 rounded-full bg-orange-500/20 blur-3xl"></div>
     <div aria-hidden="true" class="absolute inset-0 opacity-[0.07]"
@@ -125,7 +125,6 @@
 
     <div class="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
         <div class="max-w-2xl">
-            {{-- Badge date --}}
             <div class="inline-flex items-center gap-2 text-[10px] font-bold tracking-wider text-amber-300 bg-amber-500/15 border border-amber-400/30 px-3 py-1.5 rounded-full uppercase mb-4">
                 <span class="w-1.5 h-1.5 rounded-full bg-amber-400 ring-pulse relative"></span>
                 {{ now()->locale('fr')->isoFormat('dddd D MMMM YYYY') }}
@@ -152,7 +151,6 @@
             </p>
         </div>
 
-        {{-- Actions --}}
         <div class="flex flex-wrap gap-2.5 shrink-0">
             @if($operateur)
                 <a href="{{ route('traitement.index') }}"
@@ -207,7 +205,7 @@
 </section>
 
 {{-- ═══════════════════════════════════════════════════════════════
-     KPI CARDS — Gradient vibrant
+     KPI CARDS
      ═══════════════════════════════════════════════════════════════ --}}
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     @foreach($kpis as $k)
@@ -224,7 +222,8 @@
                     <span class="text-[9px] font-bold bg-white/20 px-2 py-1 rounded-md tracking-wider uppercase">{{ $k['trend'] }}</span>
                 </div>
                 <p class="text-[10.5px] font-semibold text-white/70 uppercase tracking-[0.1em] mb-1">{{ $k['label'] }}</p>
-                <p class="text-3xl font-extrabold tracking-tight {{ $k['valueClass'] }}">{{ $k['value'] }}</p>
+                <p class="text-3xl font-extrabold tracking-tight tabular-nums {{ $k['valueClass'] }}"
+                   data-count="{{ preg_replace('/\D/', '', (string) $k['value']) }}">{{ $k['value'] }}</p>
                 <p class="text-[11px] text-white/75 mt-2 flex items-center gap-1.5">
                     <span class="w-1 h-1 rounded-full bg-white/70"></span>
                     {{ $k['sub'] }}
@@ -236,9 +235,7 @@
 
 <div class="grid grid-cols-3 gap-6">
 
-    {{-- ═══════════════════════════════════════════════════════════════
-         COLONNE GAUCHE (2/3)
-         ═══════════════════════════════════════════════════════════════ --}}
+    {{-- ═══════════════ COLONNE GAUCHE (2/3) ═══════════════ --}}
     <div class="col-span-3 lg:col-span-2 space-y-6">
 
         {{-- Activité 7 jours --}}
@@ -276,9 +273,9 @@
                             @endphp
                             <div class="group flex-1 flex flex-col items-center justify-end gap-1.5 h-full">
                                 <span class="text-[11px] font-bold {{ $aujourdhui ? 'text-amber-600' : 'text-slate-500' }}">{{ $jour['depots'] }}</span>
-                                <div class="bar-grow w-full rounded-t-xl transition-all duration-300 shadow-sm
+                                <div class="bar-grow w-full rounded-t-xl transition-colors duration-300 shadow-sm
                                         {{ $aujourdhui ? 'bg-gradient-to-t from-amber-500 via-amber-400 to-amber-300 shadow-amber-500/40 ring-2 ring-amber-400/30' : 'bg-gradient-to-t from-slate-300 to-slate-100 group-hover:from-amber-500 group-hover:via-amber-400 group-hover:to-amber-300' }}"
-                                     style="height: {{ $h }}px; animation-delay: {{ $i * 0.06 }}s;"
+                                     style="height: {{ $h }}px; animation-delay: {{ 0.4 + $i * 0.07 }}s;"
                                      title="{{ $f($jour['recette']) }} FCFA"></div>
                             </div>
                         @endforeach
@@ -353,8 +350,7 @@
                                     'annule'        => 'Annulé',
                                     default         => $depot->statut,
                                 };
-                                $enRetard = $depot->date_retrait_prevue?->isPast()
-                                    && in_array($depot->statut, ['depose', 'en_traitement'], true);
+                                $enRetard = $depot->estEnRetard();
                             @endphp
                             <tr class="table-row group">
                                 <td class="py-3.5 px-6">
@@ -375,7 +371,7 @@
                                 </td>
                                 <td class="py-3.5 px-6">
                                     <div class="flex items-center gap-2.5">
-                                        <span class="row-avatar w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-amber-100 to-orange-200 text-amber-700 text-xs font-extrabold flex items-center justify-center uppercase ring-2 ring-amber-200/60 transition-all duration-300">
+                                        <span class="row-avatar w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-amber-100 to-orange-200 text-amber-700 text-xs font-extrabold flex items-center justify-center uppercase ring-2 ring-amber-200/60 transition-transform duration-300">
                                             {{ mb_substr($depot->client->nom ?? '?', 0, 1) }}
                                         </span>
                                         <span class="font-semibold text-slate-800 truncate">{{ $depot->client->nom ?? '—' }}</span>
@@ -399,8 +395,8 @@
                                     @endif
                                 </td>
                                 @if($caisse)
-                                    <td class="py-3.5 px-6 text-right font-extrabold text-slate-900">{{ $f($depot->montant_total) }}</td>
-                                    <td class="py-3.5 px-6 text-right">
+                                    <td class="py-3.5 px-6 text-right font-extrabold text-slate-900 tabular-nums">{{ $f($depot->montant_total) }}</td>
+                                    <td class="py-3.5 px-6 text-right tabular-nums">
                                         @if($depot->reste_a_payer > 0)
                                             <span class="font-extrabold text-rose-600">{{ $f($depot->reste_a_payer) }}</span>
                                         @else
@@ -438,9 +434,7 @@
         </div>
     </div>
 
-    {{-- ═══════════════════════════════════════════════════════════════
-         COLONNE DROITE (1/3)
-         ═══════════════════════════════════════════════════════════════ --}}
+    {{-- ═══════════════ COLONNE DROITE (1/3) ═══════════════ --}}
     <div class="col-span-3 lg:col-span-1 space-y-6">
 
         {{-- Statuts ce mois --}}
@@ -465,7 +459,7 @@
                     @foreach($statutsConfig as $statut => $cfg)
                         @php $n = (int) ($statsByStatut->get($statut)?->count ?? 0); @endphp
                         @if($n > 0 && $totalDepots > 0)
-                            <div class="{{ $cfg['class'] }} h-full transition-all" style="width: {{ $n / $totalDepots * 100 }}%" title="{{ $cfg['label'] }} : {{ $n }}"></div>
+                            <div class="bar-x {{ $cfg['class'] }} h-full" style="width: {{ $n / $totalDepots * 100 }}%" title="{{ $cfg['label'] }} : {{ $n }}"></div>
                         @endif
                     @endforeach
                 </div>
@@ -523,7 +517,7 @@
                             </div>
                         </div>
                         <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                            <div class="h-full rounded-full {{ $niveau < 50 ? 'bg-gradient-to-r from-rose-400 to-rose-600' : 'bg-gradient-to-r from-amber-400 to-orange-500' }}" style="width: {{ max(6, $niveau) }}%"></div>
+                            <div class="bar-x h-full rounded-full {{ $niveau < 50 ? 'bg-gradient-to-r from-rose-400 to-rose-600' : 'bg-gradient-to-r from-amber-400 to-orange-500' }}" style="width: {{ max(6, $niveau) }}%"></div>
                         </div>
                     </div>
                 @empty
@@ -581,5 +575,23 @@
 
     </div>
 </div>
+
+{{-- Compteurs animés --}}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    document.querySelectorAll('[data-count]').forEach(el => {
+        const target = parseInt(el.dataset.count, 10);
+        if (!target) return;
+        const t0 = performance.now(), dur = 1000;
+        const tick = now => {
+            const p = Math.min(1, (now - t0) / dur);
+            el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))).toLocaleString('fr-FR');
+            if (p < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+    });
+});
+</script>
 
 @endsection

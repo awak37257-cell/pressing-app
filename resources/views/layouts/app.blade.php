@@ -27,7 +27,7 @@
             0%   { background-position: -200% 0; }
             100% { background-position: 200% 0; }
         }
-        .nav-link { position: relative; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .nav-link { position: relative; transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease; }
         .nav-link::before {
             content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
             width: 3px; height: 0; background: linear-gradient(180deg, #fbbf24, #f59e0b);
@@ -50,20 +50,26 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 2px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }
-        @media (prefers-reduced-motion: reduce) {
-            .nav-link, .nav-link::before, .flash-msg, .ring-pulse::before { animation: none !important; transition: none !important; }
-        }
     </style>
 </head>
-<body class="h-full bg-slate-50/80 font-sans antialiased text-slate-900">
+<body class="min-h-screen bg-slate-50/80 font-sans antialiased text-slate-900">
 
-<div class="flex h-full">
+@php
+    $roleUtilisateur = auth()->user()->role;
+    $peutVoirDepotsPrets = in_array($roleUtilisateur, ['admin', 'gerant', 'caissier'], true);
+    $nbDepotsPrets = $peutVoirDepotsPrets
+        ? \App\Models\Depot::where('pressing_id', auth()->user()->pressing_id)->where('statut', 'pret')->count()
+        : 0;
+@endphp
+
+<div class="min-h-screen">
 
     {{-- ═══════════════════════════════════════════════════════════════
          SIDEBAR
          ═══════════════════════════════════════════════════════════════ --}}
     <aside id="sidebar"
-           class="fixed inset-y-0 left-0 z-50 w-64 flex flex-col shadow-2xl shadow-slate-900/40"
+           aria-hidden="true"
+           class="fixed inset-y-0 left-0 z-50 flex w-72 -translate-x-full flex-col shadow-2xl shadow-slate-900/40 transition-transform duration-300 ease-out lg:w-64 lg:translate-x-0 motion-reduce:transition-none"
            style="background: linear-gradient(180deg, #0a0f1e 0%, #0f172a 50%, #0a0f1e 100%);">
 
         {{-- Décors de fond --}}
@@ -130,7 +136,7 @@
 
             @if(auth()->user()->role !== 'operateur')
             <a href="{{ route('depots.index') }}"
-               class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {{ request()->routeIs('depots.*') ? 'active' : 'text-slate-400 hover:text-white hover:bg-white/5' }}">
+               class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {{ request()->routeIs('depots.*') && ! request()->routeIs('depots.prets') ? 'active' : 'text-slate-400 hover:text-white hover:bg-white/5' }}">
                 <span class="w-8 h-8 rounded-lg {{ request()->routeIs('depots.*') ? 'bg-amber-500/25 ring-1 ring-amber-400/40' : 'bg-white/5' }} flex items-center justify-center transition-all">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -138,6 +144,19 @@
                     </svg>
                 </span>
                 <span class="truncate">Dépôts & Retraits</span>
+            </a>
+            <a href="{{ route('depots.prets') }}"
+               class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {{ request()->routeIs('depots.prets') ? 'active' : 'text-slate-400 hover:text-white hover:bg-white/5' }}">
+                <span class="w-8 h-8 rounded-lg {{ request()->routeIs('depots.prets') ? 'bg-emerald-500/25 ring-1 ring-emerald-400/40' : 'bg-white/5' }} flex items-center justify-center transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7M4 4h16v16H4z"/>
+                    </svg>
+                </span>
+                <span class="truncate">Articles prêts</span>
+                <span id="sidebar-depots-prets-count"
+                      class="ml-auto inline-flex min-w-[22px] items-center justify-center rounded-full bg-emerald-500 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white {{ $nbDepotsPrets === 0 ? 'hidden' : '' }}"
+                      aria-live="polite"
+                      aria-label="{{ $nbDepotsPrets }} dépôt(s) prêt(s) à notifier">{{ $nbDepotsPrets }}</span>
             </a>
             @endif
 
@@ -176,6 +195,16 @@
                     </span>
                 @endif
             </a>
+@if(in_array(auth()->user()->role, ['admin', 'gerant', 'caissiiere'], true))
+            <a href="{{ route('caisse.cloture') }}"
+   class="flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all duration-200
+   {{ request()->routeIs('caisse.cloture') ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/25' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+    </svg>
+    <span>Journal de Caisse</span>
+</a>
+@endif
 
             @if(in_array(auth()->user()->role, ['admin', 'gerant'], true))
             <a href="{{ route('achats.index') }}"
@@ -210,7 +239,7 @@
                               d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
                     </svg>
                 </span>
-                <span class="truncate">Quantités standard</span>
+                <span class="truncate">Consommations produits</span>
             </a>
             @endif
 
@@ -333,18 +362,33 @@
         </div>
     </aside>
 
+    <button id="sidebar-backdrop" type="button" aria-label="Fermer le menu" hidden
+            class="fixed inset-0 z-40 cursor-default bg-slate-950/55 backdrop-blur-sm lg:hidden"></button>
+
     {{-- ═══════════════════════════════════════════════════════════════
          MAIN CONTENT
          ═══════════════════════════════════════════════════════════════ --}}
-    <div class="flex-1 flex flex-col min-h-screen ml-64">
+    <div class="flex min-h-screen flex-col lg:ml-64">
 
         {{-- Top bar --}}
-        <header class="bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-8 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
-            <div class="min-w-0">
+        <header class="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200/80 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-md sm:px-6 sm:py-4 lg:px-8">
+            <div class="flex min-w-0 items-center gap-3">
+                <button id="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="false"
+                        aria-label="Ouvrir le menu de navigation"
+                        class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 focus-visible:outline-offset-2 lg:hidden">
+                    <svg id="sidebar-open-icon" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                    <svg id="sidebar-close-icon" class="hidden h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 6 12 12M18 6 6 18"/>
+                    </svg>
+                </button>
+                <div class="min-w-0">
                 <h1 class="text-lg font-extrabold text-slate-900 tracking-tight truncate">@yield('page-title', 'Tableau de bord')</h1>
                 <p class="text-xs text-slate-500 font-medium truncate">@yield('page-subtitle', '')</p>
+                </div>
             </div>
-            <div class="flex items-center gap-2.5">
+            <div class="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
                 {{-- Date --}}
                 <span class="hidden md:inline-flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-100/80 px-3 py-1.5 rounded-xl border border-slate-200/60 shadow-sm">
                     <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -381,6 +425,21 @@
                     </a>
                 @endif
 
+                @if($peutVoirDepotsPrets)
+                    <a id="alertes-depots-prets"
+                       href="{{ route('depots.prets') }}"
+                       data-count="{{ $nbDepotsPrets }}"
+                       class="relative inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100"
+                       aria-live="polite" aria-label="{{ $nbDepotsPrets }} dépôt(s) prêt(s) à retirer">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159a2 2 0 01-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        <span class="hidden lg:inline">Prêts à notifier</span>
+                        <span id="alertes-depots-prets-count"
+                              class="inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-extrabold text-white {{ $nbDepotsPrets === 0 ? 'hidden' : '' }}">{{ $nbDepotsPrets }}</span>
+                    </a>
+                @endif
+
                 {{-- Profil --}}
                 <a href="{{ route('profile.edit') }}"
                    class="flex items-center gap-2 p-1 pr-3 rounded-xl bg-slate-100/80 hover:bg-slate-200 border border-slate-200/60 transition-all group"
@@ -398,7 +457,7 @@
         {{-- Flash messages --}}
         @if(session('success'))
         <div id="flash-success"
-             class="flash-msg mx-8 mt-6 flex items-start gap-3 px-4 py-3.5 bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200/80 rounded-2xl text-emerald-800 text-sm shadow-md shadow-emerald-500/10">
+             class="flash-msg mx-4 mt-4 flex items-start gap-3 rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-teal-50 px-4 py-3.5 text-sm text-emerald-800 shadow-md shadow-emerald-500/10 sm:mx-6 sm:mt-6 lg:mx-8">
             <span class="shrink-0 w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
                 <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -420,7 +479,7 @@
 
         @if(session('error'))
         <div id="flash-error"
-             class="flash-msg mx-8 mt-6 flex items-start gap-3 px-4 py-3.5 bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200/80 rounded-2xl text-rose-800 text-sm shadow-md shadow-rose-500/10">
+             class="flash-msg mx-4 mt-4 flex items-start gap-3 rounded-2xl border border-rose-200/80 bg-gradient-to-br from-rose-50 to-pink-50 px-4 py-3.5 text-sm text-rose-800 shadow-md shadow-rose-500/10 sm:mx-6 sm:mt-6 lg:mx-8">
             <span class="shrink-0 w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center">
                 <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
@@ -441,12 +500,12 @@
         @endif
 
         {{-- Page content --}}
-        <main class="flex-1 p-8">
+        <main id="page-content" class="page-enter flex-1 p-4 sm:p-6 lg:p-8">
             @yield('content')
         </main>
 
         {{-- Footer --}}
-        <footer class="px-8 py-4 border-t border-slate-200/60 text-xs text-slate-400 bg-white/40">
+        <footer class="border-t border-slate-200/60 bg-white/40 px-4 py-4 text-xs text-slate-400 sm:px-6 lg:px-8">
             <div class="flex flex-col sm:flex-row items-center justify-between gap-2">
                 <p>
                     <span class="font-semibold text-slate-600">PressManager</span>
@@ -466,6 +525,144 @@
 </div>
 
 <script>
+    (() => {
+        const sidebar = document.getElementById('sidebar');
+        const toggle = document.getElementById('sidebar-toggle');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        const openIcon = document.getElementById('sidebar-open-icon');
+        const closeIcon = document.getElementById('sidebar-close-icon');
+        const firstNavLink = sidebar.querySelector('a');
+        const desktopViewport = window.matchMedia('(min-width: 1024px)');
+
+        function setSidebarOpen(isOpen) {
+            sidebar.classList.toggle('-translate-x-full', !isOpen);
+            sidebar.setAttribute('aria-hidden', String(!isOpen));
+            toggle.setAttribute('aria-expanded', String(isOpen));
+            toggle.setAttribute('aria-label', isOpen ? 'Fermer le menu de navigation' : 'Ouvrir le menu de navigation');
+            backdrop.hidden = !isOpen;
+            openIcon.classList.toggle('hidden', isOpen);
+            closeIcon.classList.toggle('hidden', !isOpen);
+            document.body.classList.toggle('overflow-hidden', isOpen && !desktopViewport.matches);
+
+            if (isOpen && !desktopViewport.matches && firstNavLink) {
+                firstNavLink.focus();
+            }
+        }
+
+        toggle.addEventListener('click', () => {
+            setSidebarOpen(toggle.getAttribute('aria-expanded') !== 'true');
+        });
+        backdrop.addEventListener('click', () => {
+            setSidebarOpen(false);
+            toggle.focus();
+        });
+        sidebar.querySelectorAll('a').forEach((link) => {
+            link.addEventListener('click', () => {
+                if (!desktopViewport.matches) {
+                    setSidebarOpen(false);
+                }
+            });
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
+                setSidebarOpen(false);
+                toggle.focus();
+            }
+        });
+        desktopViewport.addEventListener('change', (event) => {
+            if (event.matches) {
+                setSidebarOpen(true);
+            } else {
+                setSidebarOpen(false);
+            }
+        });
+
+        if (desktopViewport.matches) {
+            setSidebarOpen(true);
+        }
+    })();
+
+    @if($peutVoirDepotsPrets)
+        const alertesDepotsPrets = document.getElementById('alertes-depots-prets');
+        const compteurAlertesDepotsPrets = document.getElementById('alertes-depots-prets-count');
+        const compteurSidebarDepotsPrets = document.getElementById('sidebar-depots-prets-count');
+        const cleCurseurAlertes = @json('ready-depot-history-cursor:'.auth()->user()->pressing_id.':'.auth()->id());
+        let dernierIdHistoriquePret = 0;
+        let verificationAlertesEnCours = false;
+
+        try {
+            const curseurEnregistre = Number(localStorage.getItem(cleCurseurAlertes) ?? 0);
+
+            if (Number.isSafeInteger(curseurEnregistre) && curseurEnregistre >= 0) {
+                dernierIdHistoriquePret = curseurEnregistre;
+            }
+        } catch (error) {
+            console.error('Impossible de lire le curseur des alertes de dépôts prêts.', error);
+        }
+
+        async function actualiserAlertesDepotsPrets() {
+            if (document.hidden || verificationAlertesEnCours) {
+                return;
+            }
+
+            verificationAlertesEnCours = true;
+
+            try {
+                const url = new URL(@json(route('depots.alertes-prets')), window.location.origin);
+                url.searchParams.set('since_id', String(dernierIdHistoriquePret));
+                const response = await fetch(url, {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Impossible de vérifier les dépôts prêts (${response.status}).`);
+                }
+
+                const data = await response.json();
+                const nouveauNombre = Number(data.count);
+                const evenements = Array.isArray(data.events) ? data.events : [];
+                const dernierIdRecu = Number(data.last_id);
+
+                if (!Number.isInteger(nouveauNombre) || nouveauNombre < 0 || !Number.isInteger(dernierIdRecu)) {
+                    throw new Error('La réponse des alertes de dépôts prêts est invalide.');
+                }
+
+                for (const evenement of evenements) {
+                    const toast = document.createElement('a');
+                    toast.href = evenement.url;
+                    toast.className = 'fixed right-6 top-20 z-[60] max-w-sm rounded-2xl border border-emerald-200 bg-white px-5 py-4 text-sm font-semibold text-emerald-900 shadow-xl';
+                    toast.setAttribute('role', 'status');
+                    const reste = Number(evenement.reste);
+                    toast.textContent = `Ticket ${evenement.ticket} (${evenement.client ?? 'client'}) prêt. Reste à payer : ${new Intl.NumberFormat('fr-FR').format(reste)} FCFA. Cliquez pour prévenir le client.`;
+                    document.body.append(toast);
+                    window.setTimeout(() => toast.remove(), 8000);
+                }
+
+                dernierIdHistoriquePret = Math.max(dernierIdHistoriquePret, dernierIdRecu);
+                try {
+                    localStorage.setItem(cleCurseurAlertes, String(dernierIdHistoriquePret));
+                } catch (error) {
+                    console.error('Impossible d’enregistrer le curseur des alertes de dépôts prêts.', error);
+                }
+                alertesDepotsPrets.dataset.count = String(nouveauNombre);
+                alertesDepotsPrets.setAttribute('aria-label', `${nouveauNombre} dépôt(s) prêt(s) à retirer`);
+                compteurAlertesDepotsPrets.textContent = String(nouveauNombre);
+                compteurAlertesDepotsPrets.classList.toggle('hidden', nouveauNombre === 0);
+                compteurSidebarDepotsPrets.textContent = String(nouveauNombre);
+                compteurSidebarDepotsPrets.classList.toggle('hidden', nouveauNombre === 0);
+                compteurSidebarDepotsPrets.setAttribute('aria-label', `${nouveauNombre} dépôt(s) prêt(s) à notifier`);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                verificationAlertesEnCours = false;
+            }
+        }
+
+        actualiserAlertesDepotsPrets();
+        window.setInterval(actualiserAlertesDepotsPrets, 30000);
+    @endif
+
     // Auto-dismiss flash messages after 5 seconds
     setTimeout(() => {
         ['flash-success', 'flash-error'].forEach(id => {

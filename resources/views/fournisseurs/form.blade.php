@@ -73,11 +73,46 @@
             </div>
         </div>
 
-        {{-- Section 2 : Coordonnées --}}
+        {{-- Section 2 : Catégories fournies --}}
+        <div class="form-card gradient-border rounded-2xl bg-white shadow-lg shadow-slate-200/50 overflow-hidden" style="animation-delay: 0.05s">
+            <div class="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-md shadow-amber-500/25">
+                    <span class="text-xs font-extrabold">02</span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-sm">Catégories de produits fournies</h3>
+                    <p class="text-[11px] text-slate-500">Sélectionnez toutes les catégories proposées par ce fournisseur</p>
+                </div>
+            </div>
+            <div class="p-6">
+                @if($categories->isNotEmpty())
+                    <div class="grid sm:grid-cols-2 gap-3">
+                        @foreach($categories as $categorie)
+                            <label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 hover:border-amber-300 hover:bg-amber-50/50 cursor-pointer">
+                                <input type="checkbox" name="categorie_produit_ids[]" value="{{ $categorie->id }}"
+                                       @checked(in_array($categorie->id, (array) old('categorie_produit_ids', $categoriesSelectionnees)))
+                                       class="rounded border-slate-300 text-amber-500 focus:ring-amber-400">
+                                <span>{{ $categorie->nom }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-sm text-slate-500">Créez d'abord une catégorie dans la page Services &amp; Tarifs.</p>
+                @endif
+                @error('categorie_produit_ids')
+                    <p class="text-rose-500 text-xs mt-2">{{ $message }}</p>
+                @enderror
+                @error('categorie_produit_ids.*')
+                    <p class="text-rose-500 text-xs mt-2">Une catégorie sélectionnée n'appartient pas à votre pressing.</p>
+                @enderror
+            </div>
+        </div>
+
+        {{-- Section 3 : Coordonnées --}}
         <div class="form-card gradient-border rounded-2xl bg-white shadow-lg shadow-slate-200/50 overflow-hidden" style="animation-delay: 0.1s">
             <div class="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white flex items-center gap-3">
                 <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/25">
-                    <span class="text-xs font-extrabold">02</span>
+                    <span class="text-xs font-extrabold">03</span>
                 </div>
                 <div>
                     <h3 class="font-bold text-slate-800 text-sm">Coordonnées</h3>

@@ -10,7 +10,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CategorieDepense extends Model
 {
-    use HasFactory, BelongsToPressing;
+    use BelongsToPressing, HasFactory;
+
+    public const NOMS_PAR_DEFAUT = [
+        'Électricité',
+        'Eau',
+        'Salaires',
+        'Loyer',
+        'Achats de produits',
+        'Remboursement client',
+    ];
 
     protected $table = 'categories_depenses';
 
@@ -27,5 +36,15 @@ class CategorieDepense extends Model
     public function depenses(): HasMany
     {
         return $this->hasMany(Depense::class);
+    }
+
+    public static function initialiserPourPressing(Pressing $pressing): void
+    {
+        foreach (self::NOMS_PAR_DEFAUT as $nom) {
+            self::withoutGlobalScope('pressing')->firstOrCreate([
+                'pressing_id' => $pressing->id,
+                'nom' => $nom,
+            ]);
+        }
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CategorieProduit;
 use App\Models\Service;
-use App\Models\Tarif;
 use App\Models\TypeArticle;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,14 +22,17 @@ class ServiceController extends Controller implements HasMiddleware
 
     public function index(): View
     {
-        $pressingId  = auth()->user()->pressing_id;
-        $services    = Service::where('pressing_id', $pressingId)
+        $pressingId = auth()->user()->pressing_id;
+        $services = Service::where('pressing_id', $pressingId)
             ->with(['tarifs.typeArticle'])
             ->orderBy('nom')
             ->get();
         $typesArticles = TypeArticle::where('pressing_id', $pressingId)->orderBy('nom')->get();
+        $categoriesProduits = CategorieProduit::withCount([
+            'produits' => fn ($query) => $query->withTrashed(),
+        ])->orderBy('nom')->get();
 
-        return view('services.index', compact('services', 'typesArticles'));
+        return view('services.index', compact('services', 'typesArticles', 'categoriesProduits'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -37,7 +40,7 @@ class ServiceController extends Controller implements HasMiddleware
         $pressingId = auth()->user()->pressing_id;
 
         $data = $request->validate([
-            'nom'         => 'required|string|max:100',
+            'nom' => 'required|string|max:100',
             'description' => 'nullable|string|max:500',
         ]);
 
@@ -51,7 +54,7 @@ class ServiceController extends Controller implements HasMiddleware
     public function update(Request $request, Service $service): RedirectResponse
     {
         $data = $request->validate([
-            'nom'         => 'required|string|max:100',
+            'nom' => 'required|string|max:100',
             'description' => 'nullable|string|max:500',
         ]);
 

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
@@ -23,7 +24,11 @@ class ForcedPasswordController extends Controller
         $user->doit_changer_mot_de_passe = false; // Désactivation du blocage
         $user->save();
 
-        return redirect()->route('dashboard')
+        $destination = $user->role === 'operateur'
+            ? route('traitement.index')
+            : route('dashboard');
+
+        return redirect($destination)
             ->with('success', 'Votre mot de passe a été mis à jour avec succès.');
     }
 }

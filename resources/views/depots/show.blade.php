@@ -30,7 +30,7 @@
     $labelsArticle = ['depose' => 'Déposé', 'en_traitement' => 'En traitement', 'pret' => 'Prêt', 'retire' => 'Retiré', 'perdu' => 'Perdu', 'abime' => 'Abîmé'];
     $badgesArticle = ['depose' => 'bg-blue-50 text-blue-700', 'en_traitement' => 'bg-amber-50 text-amber-700', 'pret' => 'bg-emerald-50 text-emerald-700', 'retire' => 'bg-slate-100 text-slate-600', 'perdu' => 'bg-rose-50 text-rose-700', 'abime' => 'bg-rose-50 text-rose-700'];
 
-    $enRetard  = $depot->date_retrait_prevue?->isPast() && in_array($depot->statut, ['depose', 'en_traitement'], true);
+    $enRetard  = $depot->estEnRetard();
     $termine   = in_array($depot->statut, ['retire', 'annule'], true);
     $reste     = (int) $depot->reste_a_payer;
     $coutTotal = $depot->consommations->sum(fn ($c) => $c->quantite * $c->cout_unitaire);
@@ -120,11 +120,11 @@
 
     @php 
         $roleUser = strtolower(trim(auth()->user()->role ?? ''));
-        $estPersonnelAtelier = in_array($roleUser, ['admin', 'gerant', 'operateur', 'atelier'], true);
+        $peutTraiterDepot = in_array($roleUser, ['admin', 'gerant', 'operateur'], true);
     @endphp
 
-    {{-- Bouton Commencer : Visible uniquement pour l'atelier/gérance --}}
-    @if($depot->statut === 'depose' && $estPersonnelAtelier)
+    {{-- Bouton Commencer : visible uniquement pour l'opérateur ou la gérance --}}
+    @if($depot->statut === 'depose' && $peutTraiterDepot)
         <form method="POST" action="{{ route('depots.commencer', $depot) }}">
             @csrf
             <button class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-amber-500/30 transition-all duration-200 hover:-translate-y-0.5 active:scale-95">
@@ -134,8 +134,8 @@
         </form>
     @endif
 
-    {{-- Bouton Marquer prêt : Visible uniquement pour l'atelier/gérance --}}
-    @if($depot->statut === 'en_traitement' && $estPersonnelAtelier)
+    {{-- Bouton Marquer prêt : visible uniquement pour l'opérateur ou la gérance --}}
+    @if($depot->statut === 'en_traitement' && $peutTraiterDepot)
         <form method="POST" action="{{ route('depots.pret', $depot) }}">
             @csrf
             <button class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/30 transition-all duration-200 hover:-translate-y-0.5 active:scale-95">
@@ -430,7 +430,16 @@
                     <dl class="space-y-3 text-sm">
                         <div class="flex justify-between text-slate-600"><dt class="text-xs font-semibold">Articles</dt><dd class="font-bold text-slate-800">{{ $f($depot->montant_total + $depot->remise) }}</dd></div>
                         @if($depot->remise > 0)
-                            <div class="flex justify-between text-slate-600"><dt class="text-xs font-semibold">Remise</dt><dd class="font-bold text-rose-600">− {{ $f($depot->remise) }}</dd></div>
+                            @php
+                                $remiseFidelite = $depot->points_fidelite_utilises * 10;
+                                $remiseManuelle = $depot->remise - $remiseFidelite;
+                            @endphp
+                            @if($remiseManuelle > 0)
+                                <div class="flex justify-between text-slate-600"><dt class="text-xs font-semibold">Remise</dt><dd class="font-bold text-rose-600">− {{ $f($remiseManuelle) }}</dd></div>
+                            @endif
+                            @if($depot->points_fidelite_utilises > 0)
+                                <div class="flex justify-between text-slate-600"><dt class="text-xs font-semibold">Fidélité ({{ $depot->points_fidelite_utilises }} points)</dt><dd class="font-bold text-rose-600">− {{ $f($remiseFidelite) }}</dd></div>
+                            @endif
                         @endif
                         <div class="flex justify-between border-t border-slate-100 pt-3"><dt class="font-bold text-slate-800 text-xs uppercase">Total net</dt><dd class="font-extrabold text-slate-900 text-base">{{ $f($depot->montant_total) }} <span class="text-[10px]">FCFA</span></dd></div>
                         <div class="flex justify-between text-slate-600"><dt class="text-xs font-semibold">Déjà payé</dt><dd class="font-bold text-emerald-600">{{ $f($depot->montant_paye) }}</dd></div>

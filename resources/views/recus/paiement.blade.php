@@ -46,7 +46,7 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
         </svg>
-        Retour au dépôt
+        {{ $reste === 0 && $depot->statut === 'pret' ? 'Retour pour confirmer la remise' : 'Retour au dépôt' }}
     </a>
 </div>
 
@@ -73,7 +73,7 @@
 
     {{-- Titre reçu --}}
     <div class="text-center my-2">
-        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em]">Reçu de paiement</p>
+        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em]">{{ $reste === 0 ? 'Reçu final de paiement' : 'Reçu de paiement' }}</p>
         <p class="text-base font-black text-slate-900 tracking-tight my-0.5">R-{{ str_pad($paiement->id, 6, '0', STR_PAD_LEFT) }}</p>
         <p class="text-[10px] text-slate-500">{{ $paiement->date_paiement?->format('d/m/Y à H:i') }}</p>
     </div>
@@ -100,6 +100,38 @@
             <td class="py-1 text-right font-mono text-[10px] text-slate-700 truncate max-w-[120px]">{{ $paiement->reference }}</td>
         </tr>
         @endif
+    </table>
+
+    <div class="sep"></div>
+
+    {{-- Articles du dépôt --}}
+    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Articles du dépôt</p>
+    <table class="w-full text-xs">
+        <thead>
+            <tr class="text-slate-400 text-[9px] uppercase">
+                <th class="text-left py-1">Article / service</th>
+                <th class="text-right py-1">Qté</th>
+                <th class="text-right py-1">Montant</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($depot->articles as $article)
+                <tr class="border-t border-slate-100">
+                    <td class="py-1.5 pr-1">
+                        <div class="font-bold text-slate-800">{{ $article->typeArticle?->nom }}</div>
+                        <div class="text-[9px] text-slate-500">{{ $article->service?->nom }}</div>
+                    </td>
+                    <td class="py-1.5 text-right text-slate-700">{{ $article->quantite }}</td>
+                    <td class="py-1.5 text-right font-semibold text-slate-800">
+                        {{ number_format($article->prix_unitaire * $article->quantite, 0, ',', ' ') }}
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="3" class="py-2 text-center text-slate-400">Aucun article renseigné</td>
+                </tr>
+            @endforelse
+        </tbody>
     </table>
 
     <div class="sep"></div>

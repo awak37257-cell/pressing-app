@@ -6,11 +6,12 @@ use App\Models\Concerns\BelongsToPressing;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Fournisseur extends Model
 {
-    use HasFactory, BelongsToPressing;
+    use BelongsToPressing, HasFactory;
 
     protected $fillable = [
         'pressing_id',
@@ -27,5 +28,15 @@ class Fournisseur extends Model
     public function achats(): HasMany
     {
         return $this->hasMany(Achat::class);
+    }
+
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            CategorieProduit::class,
+            'categorie_produit_fournisseur',
+            'fournisseur_id',
+            'categorie_produit_id'
+        );
     }
 }

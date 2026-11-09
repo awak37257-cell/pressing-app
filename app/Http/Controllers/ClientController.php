@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -36,7 +37,7 @@ class ClientController extends Controller implements HasMiddleware
         return view('clients.form', ['client' => new Client]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $data = $request->validate($this->rules());
 
@@ -51,14 +52,27 @@ class ClientController extends Controller implements HasMiddleware
             $client = Client::create($data);
         }
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'client' => [
+                    'id' => $client->id,
+                    'nom' => $client->nom,
+                    'prenom' => $client->prenom,
+                    'telephone' => $client->telephone,
+                    'points_fidelite' => $client->points_fidelite,
+                    'reste_fidelite_fcfa' => $client->reste_fidelite_fcfa,
+                ],
+            ]);
+        }
+
         return redirect()->route('clients.index')->with('success', "Client « {$client->nom} » enregistré.");
     }
 
     public function show(Client $client): View
     {
         $client->loadCount('depots');
-        $depots     = $client->depots()->orderByDesc('date_depot')->paginate(10);
-        $totalPaye  = $client->depots()->where('statut', '!=', 'annule')->sum('montant_paye');
+        $depots = $client->depots()->orderByDesc('date_depot')->paginate(10);
+        $totalPaye = $client->depots()->where('statut', '!=', 'annule')->sum('montant_paye');
         $resteTotal = $client->depots()->where('statut', '!=', 'annule')->sum('reste_a_payer');
 
         return view('clients.show', compact('client', 'depots', 'totalPaye', 'resteTotal'));
@@ -86,12 +100,12 @@ class ClientController extends Controller implements HasMiddleware
     private function rules(?Client $client = null): array
     {
         return [
-            'nom'          => 'required|string|max:100',
-            'prenom'       => 'nullable|string|max:100',
-            'telephone'    => ['required', 'string', 'max:30',
+            'nom' => 'required|string|max:100',
+            'prenom' => 'nullable|string|max:100',
+            'telephone' => ['required', 'string', 'max:30',
                 Rule::unique('clients', 'telephone')->where('pressing_id', $this->pressingId())->withoutTrashed()->ignore($client?->id)],
-            'email'        => 'nullable|email|max:150',
-            'adresse'      => 'nullable|string|max:500',
+            'email' => 'nullable|email|max:150',
+            'adresse' => 'nullable|string|max:500',
             'observations' => 'nullable|string|max:1000',
         ];
     }

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\User;
@@ -31,7 +32,7 @@ class EmployeController extends Controller
             'nom' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'telephone' => 'nullable|string|max:20',
-            'role' => ['required', Rule::in(['gerant', 'caissier', 'atelier'])],
+            'role' => ['required', Rule::in(['gerant', 'caissier', 'operateur'])],
             'password' => 'required|string|min:6|confirmed',
         ]);
 
@@ -62,7 +63,7 @@ class EmployeController extends Controller
             'nom' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users')->ignore($employe->id)],
             'telephone' => 'nullable|string|max:20',
-            'role' => ['required', Rule::in(['gerant', 'caissier', 'atelier'])],
+            'role' => ['required', Rule::in(['gerant', 'caissier', 'operateur'])],
             'password' => 'nullable|string|min:6|confirmed',
         ]);
 
@@ -79,7 +80,7 @@ class EmployeController extends Controller
         $employe->save();
 
         return redirect()->route('employes.index')
-            ->with('success', 'Le compte de ' . $employe->nom . ' a été mis à jour.');
+            ->with('success', 'Le compte de '.$employe->nom.' a été mis à jour.');
     }
 
     // 6. Suppression de l'employé

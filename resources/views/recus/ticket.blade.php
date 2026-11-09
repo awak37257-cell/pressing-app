@@ -86,10 +86,7 @@
         .barre a.wa { background: linear-gradient(135deg, #16a34a, #15803d); }
         .barre a.wa:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(22,163,74,.3); }
 
-        .barcode {
-            font-family: "Libre Barcode 39", "Courier New", monospace;
-            letter-spacing: 2px; font-size: 24px;
-        }
+        .barcode { display: block; width: 100%; max-width: 68mm; height: auto; margin: 0 auto 2px; padding: 0 4mm; }
 
         @page { size: 80mm auto; margin: 0; }
 
@@ -99,7 +96,6 @@
             .barre { display: none !important; }
         }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -195,14 +191,26 @@
     <div class="totaux-box">
         <table>
             @if($depot->remise > 0)
+                @php
+                    $remiseFidelite = $depot->points_fidelite_utilises * 10;
+                    $remiseManuelle = $depot->remise - $remiseFidelite;
+                @endphp
                 <tr>
                     <td class="petit">Sous-total</td>
                     <td class="d petit">{{ number_format($depot->montant_total + $depot->remise, 0, ',', ' ') }}</td>
                 </tr>
-                <tr>
-                    <td class="petit">Remise</td>
-                    <td class="d petit" style="color:#b91c1c;">− {{ number_format($depot->remise, 0, ',', ' ') }}</td>
-                </tr>
+                @if($remiseManuelle > 0)
+                    <tr>
+                        <td class="petit">Remise</td>
+                        <td class="d petit" style="color:#b91c1c;">− {{ number_format($remiseManuelle, 0, ',', ' ') }}</td>
+                    </tr>
+                @endif
+                @if($depot->points_fidelite_utilises > 0)
+                    <tr>
+                        <td class="petit">Fidélité ({{ $depot->points_fidelite_utilises }} points)</td>
+                        <td class="d petit" style="color:#b91c1c;">− {{ number_format($remiseFidelite, 0, ',', ' ') }}</td>
+                    </tr>
+                @endif
             @endif
             <tr class="total">
                 <td>TOTAL</td>
@@ -233,7 +241,8 @@
 
     {{-- Barcode --}}
     <div class="centre my-1">
-        <p class="barcode" style="color:#0f172a;">{{ $depot->numero_ticket }}</p>
+        <img class="barcode" src="{{ $barcodeDataUri }}" alt="Code-barres du ticket {{ $depot->numero_ticket }}">
+        <p class="petit" style="font-size:9px; letter-spacing:.12em; color:#0f172a;">{{ $depot->numero_ticket }}</p>
         <p class="petit" style="font-size:8px; letter-spacing:.15em; text-transform:uppercase; color:#94a3b8;">Scan · Ticket dépôt</p>
     </div>
 

@@ -3,19 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Depot;
-use App\Services\ConsommationService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /** File de travail de l'opérateur : dépôts à commencer ou en cours de traitement (sans montants). */
 class TraitementController extends Controller
 {
-    public function index(Request $request, ConsommationService $consommations): View
+    public function index(Request $request): View
     {
         $filtre = $request->query('statut');
 
         $query = Depot::with(['client', 'articles.typeArticle', 'articles.service'])
-            ->whereIn('statut', ['depose', 'en_traitement', 'pret'])
+            ->whereIn('statut', ['depose', 'en_traitement'])
             ->orderByDesc('express')
             ->orderBy('date_retrait_prevue')
             ->orderBy('id');
@@ -35,10 +34,6 @@ class TraitementController extends Controller
             ->whereDate('date_retrait_prevue', '<', today())
             ->count();
 
-        // Pour chaque dépôt : faut-il déclarer des produits avant de le marquer prêt ?
-        $produitsRequis = $depots->getCollection()
-            ->mapWithKeys(fn ($d) => [$d->id => $consommations->requise($d)]);
-
-        return view('traitement.index', compact('depots', 'compteurs', 'enRetard', 'filtre', 'produitsRequis'));
+        return view('traitement.index', compact('depots', 'compteurs', 'enRetard', 'filtre'));
     }
 }

@@ -7,7 +7,6 @@ use App\Models\CategorieProduit;
 use App\Models\Pressing;
 use App\Models\Produit;
 use App\Models\Service;
-use App\Models\ServiceProduit;
 use App\Models\Tarif;
 use App\Models\TypeArticle;
 use App\Models\User;
@@ -40,7 +39,7 @@ class DatabaseSeeder extends Seeder
 
         // Prix de démonstration (FCFA) : à remplacer par vos vrais tarifs
         $services = ['Lavage' => 1000, 'Repassage' => 500, 'Nettoyage à sec' => 2000, 'Détachage' => 300];
-        $types    = ['Chemise' => 1, 'Pantalon' => 1, 'Costume' => 3, 'Robe' => 2, 'Couette' => 5];
+        $types = ['Chemise' => 1, 'Pantalon' => 1, 'Costume' => 3, 'Robe' => 2, 'Couette' => 5];
 
         $serviceModels = [];
         foreach ($types as $typeNom => $coef) {
@@ -58,9 +57,8 @@ class DatabaseSeeder extends Seeder
 
         // Produits de démonstration (le stock est enregistré par un mouvement d'entrée)
         $gerant = User::where('email', 'gerant@pressing.test')->first();
-        $stock  = app(StockService::class);
+        $stock = app(StockService::class);
 
-        $produits = [];
         $definitions = [
             // nom, catégorie, unité, contenance, libellé, seuil, prix d'achat par unité, stock initial
             ['Lessive liquide', 'Détergent', 'L', 12, 'Bidon', 5, 2500, 24],
@@ -73,13 +71,13 @@ class DatabaseSeeder extends Seeder
             $produit = Produit::firstOrCreate(
                 ['pressing_id' => $pid, 'nom' => $nom],
                 [
-                    'categorie_produit_id'    => $categories[$cat]->id,
-                    'unite'                   => $unite,
-                    'contenance'              => $contenance,
+                    'categorie_produit_id' => $categories[$cat]->id,
+                    'unite' => $unite,
+                    'contenance' => $contenance,
                     'libelle_conditionnement' => $libelle,
-                    'stock_actuel'            => 0,
-                    'seuil_alerte'            => $seuil,
-                    'prix_achat_moyen'        => $prix,
+                    'stock_actuel' => 0,
+                    'seuil_alerte' => $seuil,
+                    'prix_achat_moyen' => $prix,
                 ]
             );
 
@@ -87,26 +85,7 @@ class DatabaseSeeder extends Seeder
                 $stock->mouvement($produit, 'entree', $initial, 'Stock initial (démo)', $gerant);
             }
 
-            $produits[$nom] = $produit;
         }
 
-        // Quantités standard (démo) : à ajuster selon vos machines et vos habitudes
-        $standards = [
-            ['Lavage', 'Lessive liquide', 0.05],
-            ['Repassage', 'Cintres', 1],
-            ['Nettoyage à sec', 'Solvant de nettoyage à sec', 0.1],
-            ['Nettoyage à sec', 'Housses plastique', 1],
-        ];
-
-        foreach ($standards as [$serviceNom, $produitNom, $quantite]) {
-            ServiceProduit::updateOrCreate(
-                [
-                    'service_id'      => $serviceModels[$serviceNom]->id,
-                    'type_article_id' => null,
-                    'produit_id'      => $produits[$produitNom]->id,
-                ],
-                ['quantite_par_article' => $quantite]
-            );
-        }
     }
 }
